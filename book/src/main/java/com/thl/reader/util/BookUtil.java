@@ -192,8 +192,8 @@ public class BookUtil {
             }
 
             String bufStr = new String(buf);
-//            bufStr = bufStr.replaceAll("\r\n","\r\n\u3000\u3000");
-//            bufStr = bufStr.replaceAll("\u3000\u3000+[ ]*","\u3000\u3000");
+            // 统一换行符为 \r\n，兼容 Unix(\n) 和旧 Mac(\r) 格式
+            bufStr = bufStr.replaceAll("\r\n|\r|\n", "\r\n");
             bufStr = bufStr.replaceAll("\r\n+\\s*","\r\n\u3000\u3000");
 //            bufStr = bufStr.replaceAll("\r\n[ {0,}]","\r\n\u3000\u3000");
 //            bufStr = bufStr.replaceAll(" ","");

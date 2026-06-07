@@ -12,6 +12,8 @@ import android.graphics.RectF;
 import android.graphics.Region;
 import android.graphics.Typeface;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.WindowManager;
@@ -667,8 +669,17 @@ public class PageFactory {
 
     //改变进度
     public void changeChapter(long begin){
-        currentPage = getPageForBegin(begin);
-        currentPage(true);
+        mStatus = Status.OPENING;
+        drawStatus(mBookPageWidget.getCurPage());
+        drawStatus(mBookPageWidget.getNextPage());
+        new Thread(() -> {
+            TRPage page = getPageForBegin(begin);
+            new Handler(Looper.getMainLooper()).post(() -> {
+                currentPage = page;
+                mStatus = Status.FINISH;
+                currentPage(true);
+            });
+        }).start();
     }
 
     //改变字体大小
