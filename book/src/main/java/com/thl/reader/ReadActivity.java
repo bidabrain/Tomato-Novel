@@ -342,22 +342,29 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // TODO Auto-generated method stub
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (isShow) {
-                hideReadSetting();
-                return true;
-            }
-            if (mSettingDialog.isShowing()) {
-                mSettingDialog.hide();
-                return true;
-            }
-            if (mPageModeDialog.isShowing()) {
-                mPageModeDialog.hide();
-                return true;
-            }
+    public void onBackPressed() {
+        if (mSettingDialog != null && mSettingDialog.isShowing()) {
+            mSettingDialog.hide();
+            return;
+        }
+        if (mPageModeDialog != null && mPageModeDialog.isShowing()) {
+            mPageModeDialog.hide();
+            return;
+        }
+        if (isShow) {
+            // Menu already visible — second back press exits
             finish();
+        } else {
+            // First back gesture: show menu instead of exiting
+            showReadSetting();
+        }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            onBackPressed();
+            return true;
         }
         return super.onKeyDown(keyCode, event);
     }

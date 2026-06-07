@@ -2,9 +2,13 @@ package com.thl.reader.filechooser;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -67,8 +71,16 @@ public class FileChooserActivity extends AppCompatActivity {
         fragmentTransaction.add(com.thl.reader.R.id.fragment_container, mDirectoryFragment, "" + mDirectoryFragment.toString());
         fragmentTransaction.commit();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkPermission(FileChooserActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE, EXTERNAL_STORAGE_REQ_CODE, "添加图书需要此权限，请允许");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+: need MANAGE_EXTERNAL_STORAGE to browse arbitrary files
+            if (!Environment.isExternalStorageManager()) {
+                Toast.makeText(this, "请授予「所有文件访问权限」以浏览本地文件", Toast.LENGTH_LONG).show();
+                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                        Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkPermission(FileChooserActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE, EXTERNAL_STORAGE_REQ_CODE, "添加图书需要此权限，请允许");
         }
     }
 

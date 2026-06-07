@@ -345,6 +345,10 @@ public class PageFactory {
 
     //向后翻页
     public void nextPage(){
+        if (currentPage == null) {
+            Toast.makeText(mContext, "数据异常，请重试", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (currentPage.getEnd() >= mBookUtil.getBookLen()) {
             Log.e(TAG,"已经是最后一页了");
             if (!m_islastPage){

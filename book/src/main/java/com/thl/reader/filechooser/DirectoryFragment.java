@@ -288,8 +288,15 @@ public class DirectoryFragment extends Fragment implements View.OnClickListener 
     @Override
     public void onResume() {
         super.onResume();
-        bookLists = DB.bookList().findAll();
-        listAdapter.notifyDataSetChanged();
+        new Thread(() -> {
+            List<BookList> result = DB.bookList().findAll();
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    bookLists = result;
+                    listAdapter.notifyDataSetChanged();
+                });
+            }
+        }).start();
     }
 
     @Override
@@ -417,9 +424,16 @@ public class DirectoryFragment extends Fragment implements View.OnClickListener 
                 case SUCCESS:
                     msg = "导入书本成功";
                     checkItems.clear();
-                    bookLists = DB.bookList().findAll();
-                    listAdapter.notifyDataSetChanged();
-                    changgeCheckBookNum();
+                    new Thread(() -> {
+                        List<BookList> updated = DB.bookList().findAll();
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                bookLists = updated;
+                                listAdapter.notifyDataSetChanged();
+                                changgeCheckBookNum();
+                            });
+                        }
+                    }).start();
                     break;
                 case REPEAT:
                     msg = "书本" + repeatBookList.getBookname() + "重复了";
@@ -651,7 +665,7 @@ public class DirectoryFragment extends Fragment implements View.OnClickListener 
                 }
 
                 if (!isSave) {
-                    DB.save(bookList);
+                    new Thread(() -> DB.save(bookList)).start();
                 }
                 ReadActivity.openBook(bookList, getActivity());
             }

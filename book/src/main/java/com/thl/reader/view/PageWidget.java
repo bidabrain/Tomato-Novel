@@ -3,6 +3,8 @@ package com.thl.reader.view;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Rect;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -12,6 +14,8 @@ import android.view.ViewConfiguration;
 import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
 import android.widget.Scroller;
+
+import java.util.Collections;
 
 import com.thl.reader.Config;
 import com.thl.reader.util.PageFactory;
@@ -78,6 +82,20 @@ public class PageWidget extends View {
         mScreenHeight = metric.heightPixels;
         mCurPageBitmap = Bitmap.createBitmap(mScreenWidth, mScreenHeight, Bitmap.Config.RGB_565);      //android:LargeHeap=true  use in  manifest application
         mNextPageBitmap = Bitmap.createBitmap(mScreenWidth, mScreenHeight, Bitmap.Config.RGB_565);
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        // Exclude left and right edges from Android 10+ gesture navigation so
+        // page-flip swipes are not consumed by the system back gesture.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            int w = right - left;
+            int h = bottom - top;
+            int edgeWidth = Math.min(w / 5, 100); // up to 20% or 100px
+            setSystemGestureExclusionRects(Collections.singletonList(
+                    new Rect(0, 0, w, h))); // exclude entire view
+        }
     }
 
     public void setPageMode(int pageMode){
@@ -216,18 +234,13 @@ public class PageWidget extends View {
             Log.e(TAG,"ACTION_UP");
             if (!isMove){
                 cancelPage = false;
-                //是否点击了中间
-                if (downX > mScreenWidth / 5 && downX < mScreenWidth * 4 / 5 && downY > mScreenHeight / 3 && downY < mScreenHeight * 2 / 3){
+                if (downX > mScreenWidth / 5 && downX < mScreenWidth * 4 / 5
+                        && downY > mScreenHeight / 3 && downY < mScreenHeight * 2 / 3){
                     if (mTouchListener != null){
                         mTouchListener.center();
                     }
-                    Log.e(TAG,"center");
-//                    mCornerX = 1; // 拖拽点对应的页脚
-//                    mCornerY = 1;
-//                    mTouch.x = 0.1f;
-//                    mTouch.y = 0.1f;
                     return true;
-                }else if (x < mScreenWidth / 2){
+                } else if (x < mScreenWidth / 2){
                     isNext = false;
                 }else{
                     isNext = true;

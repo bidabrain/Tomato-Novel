@@ -45,9 +45,18 @@ public class BookMarkFragment extends BaseFragment {
             bookpath = bundle.getString(ARGUMENT);
         }
         bookMarksList = new ArrayList<>();
-        bookMarksList = DB.bookMarks().findByBookpath(bookpath);
         markAdapter = new MarkAdapter(getActivity(), bookMarksList);
         lv_bookmark.setAdapter(markAdapter);
+        new Thread(() -> {
+            List<BookMarks> result = DB.bookMarks().findByBookpath(bookpath);
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> {
+                    bookMarksList.clear();
+                    bookMarksList.addAll(result);
+                    markAdapter.notifyDataSetChanged();
+                });
+            }
+        }).start();
     }
 
     @Override
@@ -74,10 +83,18 @@ public class BookMarkFragment extends BaseFragment {
                         .setPositiveButton("删除", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                DB.bookMarks().deleteById(bookMarksList.get(position).getId());
-                                bookMarksList.clear();
-                                bookMarksList.addAll(DB.bookMarks().findByBookpath(bookpath));
-                                markAdapter.notifyDataSetChanged();
+                                int id = (int) bookMarksList.get(position).getId();
+                                new Thread(() -> {
+                                    DB.bookMarks().deleteById(id);
+                                    List<BookMarks> result = DB.bookMarks().findByBookpath(bookpath);
+                                    if (getActivity() != null) {
+                                        getActivity().runOnUiThread(() -> {
+                                            bookMarksList.clear();
+                                            bookMarksList.addAll(result);
+                                            markAdapter.notifyDataSetChanged();
+                                        });
+                                    }
+                                }).start();
                             }
                         }).setCancelable(true).show();
                 return false;

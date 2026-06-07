@@ -353,7 +353,7 @@ public class SimulationAnimation extends AnimationProvider {
         float rotateDegrees;
         canvas.save();
         try {
-            canvas.clipPath(mPath0, Region.Op.XOR);
+            canvas.clipPath(mPath0, Region.Op.DIFFERENCE);
             canvas.clipPath(mPath1, Region.Op.INTERSECT);
         } catch (Exception e) {
             // TODO: handle exception
@@ -389,7 +389,7 @@ public class SimulationAnimation extends AnimationProvider {
         mPath1.close();
         canvas.save();
         try {
-            canvas.clipPath(mPath0, Region.Op.XOR);
+            canvas.clipPath(mPath0, Region.Op.DIFFERENCE);
             canvas.clipPath(mPath1, Region.Op.INTERSECT);
         } catch (Exception e) {
         }
@@ -481,7 +481,7 @@ public class SimulationAnimation extends AnimationProvider {
         mPath0.close();
 
         canvas.save();
-        canvas.clipPath(path, Region.Op.XOR);
+        canvas.clipPath(path, Region.Op.DIFFERENCE);
         canvas.drawBitmap(bitmap, 0, 0, null);
         try {
             canvas.restore();
