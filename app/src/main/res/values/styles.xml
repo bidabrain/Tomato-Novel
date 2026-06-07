@@ -8,7 +8,13 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:textColorPrimary">@color/white</item>
         <item name="android:windowBackground">@drawable/welcome</item>
+        <item name="alertDialogTheme">@style/AlertDialogTheme</item>
 
+    </style>
+
+    <!-- Dialog 单独覆盖 textColorPrimary，避免继承全局白色 -->
+    <style name="AlertDialogTheme" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="android:textColorPrimary">#222222</item>
     </style>
 
     <!--首页菜单栏-->
