@@ -157,6 +157,13 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         Intent intent = getIntent();
         bookList = (BookList) intent.getSerializableExtra(EXTRA_BOOK);
 
+        // Clear the "新+X章" update badge when the user opens the book to read
+        if (bookList.getMsg() != null && bookList.getMsg().contains("（新+")) {
+            String cleanMsg = bookList.getMsg().replaceAll("（新\\+\\d+）", "");
+            bookList.setMsg(cleanMsg);
+            new Thread(() -> DB.bookList().updateCharsetAndMsg(bookList.getId(), null, cleanMsg)).start();
+        }
+
         bookpage.setPageMode(config.getPageMode());
         pageFactory.setPageWidget(bookpage);
 
