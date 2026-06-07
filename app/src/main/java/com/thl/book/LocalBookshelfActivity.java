@@ -66,6 +66,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private SingleAdapter<BookList> adapter;
     private List<BookList> bookLists;
     private View ib_more;
+    private ImageView ib_refresh;
 
     private CustomPopWindow popWindow;
     private boolean isDel = false;
@@ -103,11 +104,15 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         @Override
         public void onReceive(Context context, Intent intent) {
             int newCount = intent.getIntExtra("total_new", 0);
+            boolean isFinished = intent.getBooleanExtra(UpdateChecker.EXTRA_IS_FINISHED, true);
             // 立即触发一次轮询刷新
             pollHandler.removeCallbacks(pollRunnable);
             pollHandler.post(pollRunnable);
-            if (newCount > 0) {
-                Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
+            if (isFinished) {
+                setRefreshButtonEnabled(true);
+                if (newCount > 0) {
+                    Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     };
@@ -152,6 +157,15 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         ib_more = findViewById(R.id.ib_more);
         ib_more.setVisibility(View.VISIBLE);
         ib_more.setOnClickListener(this);
+
+        ib_refresh = findViewById(R.id.ib_refresh);
+        ib_refresh.setVisibility(View.VISIBLE);
+        ib_refresh.setOnClickListener(v -> {
+            if (!UpdateChecker.isRunning()) {
+                UpdateChecker.checkOnLaunch(this);
+                setRefreshButtonEnabled(false);
+            }
+        });
     }
 
     @Override
@@ -248,6 +262,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         }
 
         requestStoragePermissionThenInit();
+        // 同步按钮状态（可能启动时自动检查正在运行）
+        setRefreshButtonEnabled(!UpdateChecker.isRunning());
     }
 
     @Override
@@ -391,6 +407,12 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 popWindow.dissmiss();
                 break;
         }
+    }
+
+    private void setRefreshButtonEnabled(boolean enabled) {
+        if (ib_refresh == null) return;
+        ib_refresh.setEnabled(enabled);
+        ib_refresh.setAlpha(enabled ? 1f : 0.4f);
     }
 
     private void requestPermissins(PermissionUtils.OnPermissionListener listener) {

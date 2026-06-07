@@ -21,54 +21,75 @@ import java.util.concurrent.Executors;
 public class UpdateChecker {
 
     public static final String ACTION_UPDATE_DONE = "com.thl.book.UPDATE_DONE";
+    /** Extra boolean: true 表示全部检查完毕，false 表示中间进度刷新 */
+    public static final String EXTRA_IS_FINISHED = "is_finished";
     private static final String TAG = "UpdateChecker";
 
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
 
+    /** 当前是否有更新检查正在后台运行 */
+    private static volatile boolean sIsRunning = false;
+
+    public static boolean isRunning() {
+        return sIsRunning;
+    }
+
     public static void checkOnLaunch(Context context) {
+        if (sIsRunning) return;
+        sIsRunning = true;
         executor.execute(() -> {
-            List<BookList> allTomato = DB.bookList().findByIsTomato(1);
-            // 只检查已下载完成的书（排除下载中/失败占位）
-            List<BookList> tomatoBooks = new ArrayList<>();
-            for (BookList b : allTomato) {
-                if (b.getTomatoBookId() != null
-                        && b.getBookpath() != null
-                        && !b.getBookpath().isEmpty()) {
-                    tomatoBooks.add(b);
+            try {
+                List<BookList> allTomato = DB.bookList().findByIsTomato(1);
+                // 只检查已下载完成的书（排除下载中/失败占位）
+                List<BookList> tomatoBooks = new ArrayList<>();
+                for (BookList b : allTomato) {
+                    if (b.getTomatoBookId() != null
+                            && b.getBookpath() != null
+                            && !b.getBookpath().isEmpty()) {
+                        tomatoBooks.add(b);
+                    }
                 }
-            }
-            if (tomatoBooks.isEmpty()) return;
+                if (tomatoBooks.isEmpty()) return;
 
-            // 标记所有书为"更新中…"并刷新书架
-            for (BookList book : tomatoBooks) {
-                DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), "更新中…");
-            }
-            context.sendBroadcast(new Intent(ACTION_UPDATE_DONE).putExtra("total_new", 0));
+                // 标记所有书为"更新中…"并刷新书架
+                for (BookList book : tomatoBooks) {
+                    DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), "更新中…");
+                }
+                context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
+                        .putExtra("total_new", 0)
+                        .putExtra(EXTRA_IS_FINISHED, false));
 
-            NovelDownloadManager manager = new NovelDownloadManager(context);
-            int totalNew = 0;
+                NovelDownloadManager manager = new NovelDownloadManager(context);
+                int totalNew = 0;
 
-            for (BookList book : tomatoBooks) {
-                String originalMsg = "更新中…".equals(book.getMsg()) ? "" : book.getMsg();
-                try {
-                    int newChapters = manager.downloadNewChapters(book);
-                    totalNew += newChapters;
-                    Log.d(TAG, book.getBookname() + ": +" + newChapters + " chapters");
-                    if (newChapters == 0) {
-                        // 没有新章节，恢复原来的 msg
+                for (BookList book : tomatoBooks) {
+                    String originalMsg = "更新中…".equals(book.getMsg()) ? "" : book.getMsg();
+                    try {
+                        int newChapters = manager.downloadNewChapters(book);
+                        totalNew += newChapters;
+                        Log.d(TAG, book.getBookname() + ": +" + newChapters + " chapters");
+                        if (newChapters == 0) {
+                            // 没有新章节，恢复原来的 msg
+                            DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), originalMsg);
+                        }
+                        // 有新章节时 downloadNewChapters 内部已更新 msg
+                    } catch (Exception e) {
+                        Log.w(TAG, "Update failed for " + book.getBookname(), e);
                         DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), originalMsg);
                     }
-                    // 有新章节时 downloadNewChapters 内部已更新 msg
-                } catch (Exception e) {
-                    Log.w(TAG, "Update failed for " + book.getBookname(), e);
-                    DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), originalMsg);
+                    // 每本书完成后刷新一次书架
+                    context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
+                            .putExtra("total_new", 0)
+                            .putExtra(EXTRA_IS_FINISHED, false));
                 }
-                // 每本书完成后刷新一次书架
-                context.sendBroadcast(new Intent(ACTION_UPDATE_DONE).putExtra("total_new", 0));
-            }
 
-            Log.d(TAG, "Update check done. Total new chapters: " + totalNew);
-            context.sendBroadcast(new Intent(ACTION_UPDATE_DONE).putExtra("total_new", totalNew));
+                Log.d(TAG, "Update check done. Total new chapters: " + totalNew);
+                context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
+                        .putExtra("total_new", totalNew)
+                        .putExtra(EXTRA_IS_FINISHED, true));
+            } finally {
+                sIsRunning = false;
+            }
         });
     }
 }

@@ -29,6 +29,21 @@
         android:textSize="17sp" />
 
     <ImageButton
+        android:id="@+id/ib_refresh"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_marginRight="48dp"
+        android:background="@drawable/bg_item_sel"
+        android:contentDescription="检查更新"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:scaleType="center"
+        android:visibility="gone"
+        android:src="@drawable/ic_refresh_white" />
+
+    <ImageButton
         android:id="@+id/ib_more"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
