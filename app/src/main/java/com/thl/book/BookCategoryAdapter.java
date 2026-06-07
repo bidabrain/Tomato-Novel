@@ -38,7 +38,12 @@ public class BookCategoryAdapter extends RecyclerView.Adapter<BookCategoryAdapte
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_book_category, parent, false);
-        return new ViewHolder(v);
+        ViewHolder holder = new ViewHolder(v);
+        // Set LayoutManager once at creation time, not on every bind
+        holder.rvBooks.setLayoutManager(
+                new LinearLayoutManager(parent.getContext(), LinearLayoutManager.HORIZONTAL, false));
+        holder.rvBooks.setHasFixedSize(true);
+        return holder;
     }
 
     @Override
@@ -49,9 +54,6 @@ public class BookCategoryAdapter extends RecyclerView.Adapter<BookCategoryAdapte
         // Build or update inner adapter
         if (holder.cardAdapter == null) {
             holder.cardAdapter = new BookCardAdapter(cat.displayBooks, bookClickListener);
-            holder.rvBooks.setLayoutManager(
-                    new LinearLayoutManager(holder.rvBooks.getContext(),
-                            LinearLayoutManager.HORIZONTAL, false));
             holder.rvBooks.setAdapter(holder.cardAdapter);
         } else {
             holder.cardAdapter.updateBooks(cat.displayBooks);

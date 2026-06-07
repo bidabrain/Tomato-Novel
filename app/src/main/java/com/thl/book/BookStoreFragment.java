@@ -45,6 +45,7 @@ public class BookStoreFragment extends Fragment {
         view.findViewById(R.id.btn_retry).setOnClickListener(v -> fetchData());
 
         rvCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
+        rvCategories.setHasFixedSize(true);
 
         if (RankDataCache.hasData()) {
             // Show cached data immediately, then silently refresh in background

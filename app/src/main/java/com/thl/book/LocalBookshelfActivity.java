@@ -309,7 +309,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         boolean initFirst = SharedPreferencesUtils.getBoolean(this, "initFristData", true);
         if (initFirst) {
             // Mark as done immediately so a crash during scan doesn't cause repeated imports
-            SharedPreferencesUtils.saveBoolean(this, "initFristData", false);
+            SharedPreferencesUtils.saveBooleanSync(this, "initFristData", false);
             MediaLoader.getLoader().loadFiles(this, new OnFileLoaderCallBack(FileType.DOC) {
                 @Override
                 public void onResult(FileResult result) {

@@ -53,6 +53,7 @@ public class BookCardAdapter extends RecyclerView.Adapter<BookCardAdapter.ViewHo
         if (book.cover != null && !book.cover.isEmpty()) {
             Glide.with(ctx)
                     .load(book.cover)
+                    .override(102, 140)  // dp values match item_book_card.xml (102dp × 140dp)
                     .placeholder(R.mipmap.cover_default_new)
                     .error(R.mipmap.cover_default_new)
                     .into(holder.ivCover);
