@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+// 从 local.properties 读取私密配置
+def localProps = new Properties()
+def localPropsFile = rootProject.file("local.properties")
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { localProps.load(it) }
+}
+
 android {
     compileSdkVersion rootProject.ext.android["compileSdkVersion"]
     buildToolsVersion rootProject.ext.android["buildToolsVersion"]
@@ -21,11 +28,15 @@ android {
     buildTypes {
         debug {
             buildConfigField "boolean", "LOG_DEBUG", "true"
+            buildConfigField "String", "DOWNLOADER_URL",      "\"${localProps['DOWNLOADER_URL'] ?: ''}\""
+            buildConfigField "String", "DOWNLOADER_PASSWORD", "\"${localProps['DOWNLOADER_PASSWORD'] ?: ''}\""
             debuggable true
             minifyEnabled false
         }
         release {
             buildConfigField "boolean", "LOG_DEBUG", "false"
+            buildConfigField "String", "DOWNLOADER_URL",      "\"${localProps['DOWNLOADER_URL'] ?: ''}\""
+            buildConfigField "String", "DOWNLOADER_PASSWORD", "\"${localProps['DOWNLOADER_PASSWORD'] ?: ''}\""
             debuggable false
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

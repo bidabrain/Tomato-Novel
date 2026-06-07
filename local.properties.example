@@ -1,0 +1,6 @@
+sdk.dir=/path/to/android/sdk
+
+# Fanqie downloader server credentials
+# Copy this file to local.properties and fill in your own values
+DOWNLOADER_URL=https://your-downloader-server.example.com
+DOWNLOADER_PASSWORD=your-password-here
