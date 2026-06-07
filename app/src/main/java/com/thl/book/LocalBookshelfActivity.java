@@ -180,14 +180,18 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             registerReceiver(updateReceiver, filter);
         }
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+        // Android 13+ removed legacy storage permissions — skip the request
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             initFirstData();
         } else {
             requestPermissins(new PermissionUtils.OnPermissionListener() {
                 @Override
                 public void onPermissionGranted() { initFirstData(); }
                 @Override
-                public void onPermissionDenied(String[] deniedPermissions) {}
+                public void onPermissionDenied(String[] deniedPermissions) {
+                    initFirstData(); // still load from DB even if denied
+                }
             });
         }
     }
@@ -266,18 +270,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.add_book:
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                    startActivity(new Intent(this, FileChooserActivity.class));
-                } else {
-                    requestPermissins(new PermissionUtils.OnPermissionListener() {
-                        @Override
-                        public void onPermissionGranted() {
-                            startActivity(new Intent(LocalBookshelfActivity.this, FileChooserActivity.class));
-                        }
-                        @Override
-                        public void onPermissionDenied(String[] deniedPermissions) {}
-                    });
-                }
+                startActivity(new Intent(this, FileChooserActivity.class));
                 popWindow.dissmiss();
                 break;
 
@@ -306,18 +299,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 break;
 
             case R.id.find_book:
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                    startActivity(new Intent(this, FindBookActivity.class));
-                } else {
-                    requestPermissins(new PermissionUtils.OnPermissionListener() {
-                        @Override
-                        public void onPermissionGranted() {
-                            startActivity(new Intent(LocalBookshelfActivity.this, FindBookActivity.class));
-                        }
-                        @Override
-                        public void onPermissionDenied(String[] deniedPermissions) {}
-                    });
-                }
+                startActivity(new Intent(this, FindBookActivity.class));
                 popWindow.dissmiss();
                 break;
 
