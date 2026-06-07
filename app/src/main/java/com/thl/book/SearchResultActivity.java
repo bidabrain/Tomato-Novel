@@ -109,6 +109,9 @@ public class SearchResultActivity extends BaseActivity {
                         public void onComplete() {
                             NotifyHelper.send(appCtx,
                                     "下载完成", "《" + item.bookName + "》已添加到书架");
+                            appCtx.sendBroadcast(
+                                    new android.content.Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                            .putExtra("total_new", 0));
                         }
 
                         @Override
