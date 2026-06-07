@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -67,21 +68,41 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     // 独立线程用于下载，避免阻塞书架刷新
     private final ExecutorService downloadExecutor = Executors.newSingleThreadExecutor();
 
-    private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
+    // 有"下载中"条目时每3秒轮询一次数据库
+    private final Handler pollHandler = new Handler(Looper.getMainLooper());
+    private final Runnable pollRunnable = new Runnable() {
         @Override
-        public void onReceive(Context context, Intent intent) {
-            int newCount = intent.getIntExtra("total_new", 0);
+        public void run() {
             executor.execute(() -> {
                 List<BookList> books = getBooks();
+                boolean hasPending = false;
+                for (BookList b : books) {
+                    if (b.getBookpath() == null || b.getBookpath().isEmpty()) {
+                        hasPending = true;
+                        break;
+                    }
+                }
+                final boolean keepPolling = hasPending;
                 runOnUiThread(() -> {
                     bookLists.clear();
                     bookLists.addAll(books);
                     adapter.notifyDataSetChanged();
-                    if (newCount > 0) {
-                        Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
-                    }
+                    if (keepPolling) pollHandler.postDelayed(this, 3000);
                 });
             });
+        }
+    };
+
+    private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int newCount = intent.getIntExtra("total_new", 0);
+            // 立即触发一次轮询刷新
+            pollHandler.removeCallbacks(pollRunnable);
+            pollHandler.post(pollRunnable);
+            if (newCount > 0) {
+                Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
+            }
         }
     };
 
@@ -223,6 +244,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     protected void onPause() {
         super.onPause();
         unregisterReceiver(updateReceiver);
+        pollHandler.removeCallbacks(pollRunnable);
     }
 
     private void initFirstData() {
@@ -262,6 +284,18 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     bookLists.clear();
                     bookLists.addAll(books);
                     adapter.notifyDataSetChanged();
+                    // 有下载中条目，启动轮询
+                    boolean hasPending = false;
+                    for (BookList b : books) {
+                        if (b.getBookpath() == null || b.getBookpath().isEmpty()) {
+                            hasPending = true;
+                            break;
+                        }
+                    }
+                    if (hasPending) {
+                        pollHandler.removeCallbacks(pollRunnable);
+                        pollHandler.postDelayed(pollRunnable, 3000);
+                    }
                 });
             });
         }
