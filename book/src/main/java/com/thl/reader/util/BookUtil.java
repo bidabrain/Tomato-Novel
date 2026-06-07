@@ -259,6 +259,11 @@ public class BookUtil {
         }catch (Exception e){
             e.printStackTrace();
         }
+        // 将章节目录持久化到数据库，书架进度显示依赖此数据
+        if (!directoryList.isEmpty()) {
+            DB.catalogue().deleteByBookpath(bookPath);
+            DB.catalogue().insertAll(directoryList);
+        }
     }
 
     public List<BookCatalogue> getDirectoryList(){
