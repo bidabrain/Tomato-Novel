@@ -69,12 +69,17 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         @Override
         public void onReceive(Context context, Intent intent) {
             int newCount = intent.getIntExtra("total_new", 0);
-            bookLists.clear();
-            bookLists.addAll(getBooks());
-            adapter.notifyDataSetChanged();
-            if (newCount > 0) {
-                Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
-            }
+            executor.execute(() -> {
+                List<BookList> books = getBooks();
+                runOnUiThread(() -> {
+                    bookLists.clear();
+                    bookLists.addAll(books);
+                    adapter.notifyDataSetChanged();
+                    if (newCount > 0) {
+                        Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
         }
     };
 
@@ -125,10 +130,15 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         refreshLayout.setOnRefreshListener(new RefreshListenerAdapter() {
             @Override
             public void onRefresh(final TwinklingRefreshLayout refreshLayout) {
-                bookLists.clear();
-                bookLists.addAll(getBooks());
-                adapter.notifyDataSetChanged();
-                new Handler().postDelayed(() -> refreshLayout.finishRefreshing(), 1000);
+                executor.execute(() -> {
+                    List<BookList> books = getBooks();
+                    runOnUiThread(() -> {
+                        bookLists.clear();
+                        bookLists.addAll(books);
+                        adapter.notifyDataSetChanged();
+                        refreshLayout.finishRefreshing();
+                    });
+                });
             }
         });
 
@@ -232,9 +242,14 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 }
             });
         } else {
-            bookLists.clear();
-            bookLists.addAll(getBooks());
-            adapter.notifyDataSetChanged();
+            executor.execute(() -> {
+                List<BookList> books = getBooks();
+                runOnUiThread(() -> {
+                    bookLists.clear();
+                    bookLists.addAll(books);
+                    adapter.notifyDataSetChanged();
+                });
+            });
         }
     }
 
