@@ -22,6 +22,8 @@
         android:drawableLeft="@android:drawable/ic_menu_search"
         android:drawablePadding="6dp"
         android:hint="搜索番茄小说…"
+        android:textColorHint="#999999"
+        android:textColor="#333333"
         android:imeOptions="actionSearch"
         android:inputType="text"
         android:paddingLeft="10dp"
