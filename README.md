@@ -16,7 +16,7 @@ An Android e-book reader with built-in Fanqie Novel (番茄小说) search and au
 
 ## Screenshots
 
-_Install the APK and enjoy — screenshots coming soon._
+![Tomato Novel Reader](screenshot.jpg)
 
 ## Download
 
