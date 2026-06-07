@@ -160,14 +160,21 @@ public class NovelDownloadManager {
         tomatoBook.setLastCheckedAt(System.currentTimeMillis());
         DB.save(tomatoBook);
 
-        BookList bookList = new BookList();
-        bookList.setBookname(jobTitle);
-        bookList.setBookpath(outputPath);
-        bookList.setIsTomato(1);
-        bookList.setTomatoBookId(bookId);
-        bookList.setMsg(jobAuthor + (totalChapters > 0 ? " · " + totalChapters + "章" : ""));
-        bookList.setCharset("UTF-8");
-        DB.save(bookList);
+        String msg = jobAuthor + (totalChapters > 0 ? " · " + totalChapters + "章" : "");
+        // 更新占位条目（若不存在则新增）
+        List<BookList> existing = DB.bookList().findByTomatoBookId(bookId);
+        if (!existing.isEmpty()) {
+            DB.bookList().updateDownloadResult(bookId, jobTitle, outputPath, msg, "UTF-8");
+        } else {
+            BookList bookList = new BookList();
+            bookList.setBookname(jobTitle);
+            bookList.setBookpath(outputPath);
+            bookList.setIsTomato(1);
+            bookList.setTomatoBookId(bookId);
+            bookList.setMsg(msg);
+            bookList.setCharset("UTF-8");
+            DB.save(bookList);
+        }
 
         callback.onComplete();
     }

@@ -90,14 +90,32 @@ public class SearchResultActivity extends BaseActivity {
 
         executor.execute(() -> {
             List<BookList> existing = DB.bookList().findByTomatoBookId(item.bookId);
-            if (!existing.isEmpty()) {
+            if (!existing.isEmpty() &&
+                    existing.get(0).getBookpath() != null &&
+                    !existing.get(0).getBookpath().isEmpty()) {
                 runOnUiThread(() -> Toast.makeText(this,
                         "书架中已有《" + item.bookName + "》", Toast.LENGTH_SHORT).show());
                 return;
             }
 
+            // 插入占位条目（若已有失败占位则复用）
+            if (existing.isEmpty()) {
+                BookList placeholder = new BookList();
+                placeholder.setBookname(item.bookName);
+                placeholder.setBookpath("");
+                placeholder.setIsTomato(1);
+                placeholder.setTomatoBookId(item.bookId);
+                placeholder.setMsg("下载中…");
+                DB.save(placeholder);
+            } else {
+                // 已有失败占位，重置状态
+                DB.bookList().updateDownloadResult(item.bookId, item.bookName, "", "下载中…", null);
+            }
+            appCtx.sendBroadcast(new android.content.Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                    .putExtra("total_new", 0));
+
             runOnUiThread(() -> Toast.makeText(this,
-                    "《" + item.bookName + "》已提交下载，完成后通知", Toast.LENGTH_SHORT).show());
+                    "《" + item.bookName + "》下载中，完成后通知", Toast.LENGTH_SHORT).show());
 
             NovelDownloadManager manager = new NovelDownloadManager(appCtx);
             manager.downloadFull(item.bookId, item.bookName, item.author,
@@ -116,8 +134,14 @@ public class SearchResultActivity extends BaseActivity {
 
                         @Override
                         public void onError(String message) {
+                            // 占位条目改为失败提示，保留在书架方便用户重试
+                            DB.bookList().updateDownloadResult(
+                                    item.bookId, item.bookName, "", "下载失败，点击重试", null);
                             NotifyHelper.send(appCtx,
                                     "下载失败", "《" + item.bookName + "》" + message);
+                            appCtx.sendBroadcast(
+                                    new android.content.Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                            .putExtra("total_new", 0));
                         }
                     });
         });

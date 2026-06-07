@@ -172,8 +172,14 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 tvMsg.setText(book.getMsg());
                 tomatoBadge.setVisibility(book.getIsTomato() == 1 ? View.VISIBLE : View.GONE);
 
-                holder.getRootView().setOnClickListener(v ->
-                        ReadActivity.openBook(book, LocalBookshelfActivity.this));
+                boolean isDownloading = book.getBookpath() == null || book.getBookpath().isEmpty();
+                holder.getRootView().setAlpha(isDownloading ? 0.45f : 1f);
+                if (isDownloading) {
+                    holder.getRootView().setOnClickListener(null);
+                } else {
+                    holder.getRootView().setOnClickListener(v ->
+                            ReadActivity.openBook(book, LocalBookshelfActivity.this));
+                }
             }
         };
 
