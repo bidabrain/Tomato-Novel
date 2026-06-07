@@ -177,6 +177,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     lltDel.setOnClickListener(v -> {
                         executor.execute(() -> {
                             DB.bookList().deleteById(book.getId());
+                            // 同步删除本地 TXT 文件
+                            String path = book.getBookpath();
+                            if (path != null && !path.isEmpty()) {
+                                new File(path).delete();
+                            }
                             List<BookList> books = getBooks();
                             runOnUiThread(() -> {
                                 bookLists.clear();
