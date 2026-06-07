@@ -339,6 +339,7 @@ public class PageFactory {
             m_isfirstPage = false;
         }
 
+        m_islastPage = false;
         cancelPage = currentPage;
         onDraw(mBookPageWidget.getCurPage(),currentPage.getLines(),true);
         currentPage = getPrePage();
@@ -669,6 +670,7 @@ public class PageFactory {
 
     //改变进度
     public void changeChapter(long begin){
+        m_islastPage = false;
         mStatus = Status.OPENING;
         drawStatus(mBookPageWidget.getCurPage());
         drawStatus(mBookPageWidget.getNextPage());
