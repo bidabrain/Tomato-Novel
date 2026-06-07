@@ -1,0 +1,43 @@
+package com.thl.reader.db;
+
+import android.content.Context;
+
+import com.thl.reader.db.dao.BookCatalogueDao;
+import com.thl.reader.db.dao.BookListDao;
+import com.thl.reader.db.dao.BookMarksDao;
+import com.thl.reader.db.dao.TomatoBookDao;
+
+/**
+ * Static accessor for Room DAOs — replaces LitePal's DataSupport static API.
+ * Must call DB.init(context) once from Application.onCreate().
+ * All methods are synchronous — call from a background thread.
+ */
+public class DB {
+    private static AppDatabase db;
+
+    public static void init(Context context) {
+        db = AppDatabase.get(context);
+    }
+
+    public static BookListDao bookList() { return db.bookListDao(); }
+    public static BookMarksDao bookMarks() { return db.bookMarksDao(); }
+    public static BookCatalogueDao catalogue() { return db.bookCatalogueDao(); }
+    public static TomatoBookDao tomatoBook() { return db.tomatoBookDao(); }
+
+    /** Insert or update a BookList: insert if id==0, update otherwise. */
+    public static void save(BookList b) {
+        if (b.getId() == 0) { long id = db.bookListDao().insert(b); b.setId((int) id); }
+        else db.bookListDao().update(b);
+    }
+
+    /** Insert or update a BookMarks (always insert — no update path needed). */
+    public static void save(BookMarks m) {
+        db.bookMarksDao().insert(m);
+    }
+
+    /** Insert or update a TomatoBook. */
+    public static void save(TomatoBook t) {
+        if (t.getId() == 0) { long id = db.tomatoBookDao().insert(t); t.setId((int) id); }
+        else db.tomatoBookDao().update(t);
+    }
+}

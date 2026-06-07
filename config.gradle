@@ -1,0 +1,31 @@
+ext {
+    android = [
+            compileSdkVersion: 34,
+            buildToolsVersion: "34.0.0",
+            applicationId    : "com.isayama.tomatoreader",
+            minSdkVersion    : 21,
+            targetSdkVersion : 34,
+            versionCode      : 1,
+            versionName      : "1.0.0"
+    ]
+
+    version = [
+            androidSupportSdkVersion: "28.0.0",
+    ]
+
+    dependencies = [
+            //support
+            "design"         : "com.android.support:design:${version["androidSupportSdkVersion"]}",
+            "support-v4"     : "com.android.support:support-v4:${version["androidSupportSdkVersion"]}",
+            "appcompat-v7"   : "com.android.support:appcompat-v7:${version["androidSupportSdkVersion"]}",
+            "cardview-v7"    : "com.android.support:cardview-v7:${version["androidSupportSdkVersion"]}",
+            "recyclerview-v7": "com.android.support:recyclerview-v7:${version["androidSupportSdkVersion"]}",
+
+            // network
+            "okhttp"         : "com.squareup.okhttp3:okhttp:4.9.3",
+            "gson"           : "com.google.code.gson:gson:2.8.9",
+
+            // image loading
+            "glide"          : "com.github.bumptech.glide:glide:4.12.0",
+    ]
+}
