@@ -5,10 +5,12 @@ An Android e-book reader with built-in Fanqie Novel (番茄小说) search and au
 ## Features
 
 - **Search Fanqie Novel** — search Chinese novels directly from the bookshelf screen
-- **One-tap download** — adding a search result to your bookshelf downloads the full novel as a local TXT file automatically
-- **Auto-update on launch** — every time the app starts, it checks all Fanqie-sourced books for new chapters and appends them silently in the background
+- **One-tap download** — adding a search result downloads the full novel as a local TXT file automatically
+- **Auto-update on launch** — checks all Fanqie-sourced books for new chapters on every app start; a manual refresh button is also available on the bookshelf
+- **Reading progress on shelf** — bookshelf shows current chapter and total chapters for each book
+- **Recently-read sorting** — bookshelf is sorted by last read time, most recent first
 - **Local TXT reading** — smooth canvas-rendered paging, bookmarks, chapter index, font/background customization
-- **Mixed shelf** — manually added local TXT files sit alongside Fanqie books; only Fanqie books are ever checked for updates
+- **Mixed shelf** — manually added local TXT files sit alongside Fanqie books; only Fanqie books are checked for updates
 
 ## Screenshots
 
@@ -18,22 +20,6 @@ _Install the APK and enjoy — screenshots coming soon._
 
 Get the latest release APK from the [Releases](../../releases) page.
 
-## Server Configuration
-
-The app connects to a self-hosted [Tomato-Novel-Downloader](https://github.com/Dlankevi/Tomato-Novel-Downloader) instance for search and download.
-The server URL and password are hardcoded in:
-
-```
-app/src/main/java/com/thl/book/network/FanqieClient.java
-```
-
-```java
-private static final String DOWNLOADER_URL      = "https://fanqie.meegocloud.pp.ua";
-private static final String DOWNLOADER_PASSWORD = "sakura";
-```
-
-To point to a different server, edit those two constants and rebuild.
-
 ## Build
 
 Requirements: JDK 11+, Android SDK (command-line tools or Android Studio)
@@ -41,9 +27,28 @@ Requirements: JDK 11+, Android SDK (command-line tools or Android Studio)
 ```bash
 git clone git@github.com:bidabrain/Tomato-Novel.git
 cd Tomato-Novel
-./gradlew assembleRelease
-# APK → app/build/outputs/apk/release/
+cp local.properties.example local.properties
+# Edit local.properties and fill in your server URL and password (see Server Configuration below)
+./gradlew assembleDebug
+# APK → app/build/outputs/apk/debug/
 ```
+
+## Server Configuration
+
+The app connects to a self-hosted [Tomato-Novel-Downloader](https://github.com/Dlankevi/Tomato-Novel-Downloader) instance for search and download.
+
+Credentials are **not stored in source code**. Instead, copy `local.properties.example` to `local.properties` (which is git-ignored) and fill in your own values:
+
+```
+# local.properties
+sdk.dir=/path/to/android/sdk
+DOWNLOADER_URL=https://your-downloader-server.example.com
+DOWNLOADER_PASSWORD=your-password-here
+```
+
+At build time, Gradle reads these values and injects them into `BuildConfig`. The compiled APK contains them, but they never appear in the source code.
+
+If `local.properties` is missing or the fields are empty, the app will build successfully but search and download will not work.
 
 ## Acknowledgements
 
