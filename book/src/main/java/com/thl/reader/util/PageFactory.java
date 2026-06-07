@@ -391,6 +391,8 @@ public class PageFactory {
             return;
         }
         currentCharter = 0;
+        m_isfirstPage = false;
+        m_islastPage = false;
         initBg(config.getDayOrNight());
         this.bookList = bookList;
         bookPath = bookList.getBookpath();
@@ -769,6 +771,8 @@ public class PageFactory {
 
     public void clear(){
         currentCharter = 0;
+        m_isfirstPage = false;
+        m_islastPage = false;
         bookPath = "";
         bookName = "";
         bookList = null;
