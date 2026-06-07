@@ -290,7 +290,11 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
                 if (isShow) {
                     return false;
                 }
-
+                if (pageFactory.islastPage()) {
+                    // 已提示过最后一页，再划一次退出
+                    finish();
+                    return false;
+                }
                 pageFactory.nextPage();
                 if (pageFactory.islastPage()) {
                     return false;
