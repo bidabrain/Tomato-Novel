@@ -30,11 +30,11 @@ public class FanqieClient {
     }
 
     public static String getDownloaderUrl(Context context) {
-        return BuildConfig.DOWNLOADER_URL;
+        return com.thl.book.ServerConfig.getDownloaderUrl(context);
     }
 
     public static String getDownloaderPassword(Context context) {
-        return BuildConfig.DOWNLOADER_PASSWORD;
+        return com.thl.book.ServerConfig.getDownloaderPassword(context);
     }
 
     /** @deprecated proxy is no longer used */

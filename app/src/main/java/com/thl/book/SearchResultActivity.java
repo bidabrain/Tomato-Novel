@@ -70,10 +70,19 @@ public class SearchResultActivity extends BaseActivity {
                     FanqieClient.getDownloaderUrl(this),
                     FanqieClient.getDownloaderPassword(this));
             List<SearchItem> items = api.search(query);
+            if (isDestroyed() || isFinishing()) return;
             runOnUiThread(() -> {
+                if (isDestroyed() || isFinishing()) return;
+                if (items == null) {
+                    // Network / connection failure
+                    tvEmpty.setText("连接服务器失败，请检查网络或服务器配置");
+                    tvEmpty.setVisibility(View.VISIBLE);
+                    return;
+                }
                 results.clear();
                 results.addAll(items);
                 adapter.notifyDataSetChanged();
+                tvEmpty.setText("未找到结果");
                 tvEmpty.setVisibility(results.isEmpty() ? View.VISIBLE : View.GONE);
             });
         });
@@ -93,7 +102,7 @@ public class SearchResultActivity extends BaseActivity {
             if (!existing.isEmpty() &&
                     existing.get(0).getBookpath() != null &&
                     !existing.get(0).getBookpath().isEmpty()) {
-                runOnUiThread(() -> Toast.makeText(this,
+                runOnUiThread(() -> Toast.makeText(appCtx,
                         "书架中已有《" + item.bookName + "》", Toast.LENGTH_SHORT).show());
                 return;
             }

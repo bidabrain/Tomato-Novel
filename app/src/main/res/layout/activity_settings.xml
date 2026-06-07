@@ -2,127 +2,202 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#FFFFFF">
+    android:background="@color/bg_activity"
+    android:orientation="vertical">
 
+    <!-- Title bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
+        android:background="@color/colorPrimary"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:background="#F5CDCD"
-        android:gravity="center_vertical">
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp">
 
         <ImageView
             android:id="@+id/iv_back"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:padding="12dp"
-            android:src="@drawable/bt_nav_back"
-            android:scaleType="centerInside" />
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="返回"
+            android:padding="8dp"
+            android:src="@drawable/img_back" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="设置"
-            android:textSize="18sp"
-            android:textColor="#000000"
-            android:textStyle="bold" />
+            android:text="服务器设置"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
+
     </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="16dp">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- ── Section 1: 搜索 / 下载服务器 ───────────────────────────── -->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="自定义搜索下载服务器"
+                    android:textColor="#111111"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <Switch
+                    android:id="@+id/switch_downloader"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="番茄下载服务器"
-                android:textSize="13sp"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="12dp"
+                android:text="开启后使用下方地址替换内置服务器"
                 android:textColor="#888888"
-                android:paddingBottom="4dp" />
+                android:textSize="12sp" />
 
-            <TextView
+            <LinearLayout
+                android:id="@+id/group_downloader"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Downloader URL"
-                android:textSize="15sp"
-                android:textColor="#333333"
-                android:paddingBottom="4dp" />
+                android:orientation="vertical">
 
-            <EditText
-                android:id="@+id/et_downloader_url"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="https://fanqie.meegocloud.pp.ua"
-                android:inputType="textUri"
-                android:singleLine="true"
-                android:paddingBottom="8dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="服务器地址"
+                    android:textColor="#555555"
+                    android:textSize="13sp" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="访问密码（如未设置密码留空）"
-                android:textSize="15sp"
-                android:textColor="#333333"
-                android:paddingTop="12dp"
-                android:paddingBottom="4dp" />
+                <EditText
+                    android:id="@+id/et_downloader_url"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:hint="https://your-downloader-server.example.com"
+                    android:inputType="textUri"
+                    android:singleLine="true" />
 
-            <EditText
-                android:id="@+id/et_downloader_password"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="留空表示无密码"
-                android:inputType="textPassword"
-                android:singleLine="true"
-                android:paddingBottom="16dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="访问密码（未设置密码留空）"
+                    android:textColor="#555555"
+                    android:textSize="13sp" />
 
+                <EditText
+                    android:id="@+id/et_downloader_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:hint="留空表示无密码"
+                    android:inputType="textPassword"
+                    android:singleLine="true" />
+
+            </LinearLayout>
+
+            <!-- Divider -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#EEEEEE"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                android:background="#E0E0E0" />
+
+            <!-- ── Section 2: 书城数据源 ───────────────────────────────────── -->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="自定义书城数据源"
+                    android:textColor="#111111"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <Switch
+                    android:id="@+id/switch_store"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="内容代理（正文下载）"
-                android:textSize="13sp"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="12dp"
+                android:text="开启后使用下方地址替换内置书城地址"
                 android:textColor="#888888"
-                android:paddingBottom="4dp" />
+                android:textSize="12sp" />
 
-            <TextView
+            <LinearLayout
+                android:id="@+id/group_store"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="代理服务器 URL"
-                android:textSize="15sp"
-                android:textColor="#333333"
-                android:paddingBottom="4dp" />
+                android:orientation="vertical">
 
-            <EditText
-                android:id="@+id/et_proxy_url"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="https://api.cenguigui.cn"
-                android:inputType="textUri"
-                android:singleLine="true"
-                android:paddingBottom="16dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="数据源地址（latest_ranks.json 完整 URL）"
+                    android:textColor="#555555"
+                    android:textSize="13sp" />
 
-            <Button
-                android:id="@+id/btn_save"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="保存"
-                android:backgroundTint="#F5CDCD"
-                android:textColor="#000000" />
+                <EditText
+                    android:id="@+id/et_store_url"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:hint="https://username.github.io/FanqieRankTracker/data/latest_ranks.json"
+                    android:inputType="textUri"
+                    android:singleLine="true" />
+
+            </LinearLayout>
 
         </LinearLayout>
+
     </ScrollView>
+
+    <!-- Save button pinned at bottom -->
+    <Button
+        android:id="@+id/btn_save"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_margin="12dp"
+        android:background="@color/colorPrimary"
+        android:text="保存"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
 
 </LinearLayout>

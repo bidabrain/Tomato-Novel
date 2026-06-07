@@ -50,7 +50,11 @@ public class FanqieApi {
 
     // ── 搜索 ──────────────────────────────────────────────────────────────────
 
-    /** Search books via Tomato-Novel-Downloader instance. Returns empty list on failure. */
+    /**
+     * Search books via Tomato-Novel-Downloader instance.
+     * Returns null on network/connection failure, empty list when the server
+     * responded successfully but found no results.
+     */
     public List<SearchItem> search(String keyword) {
         HttpUrl url = HttpUrl.parse(downloaderUrl + "/api/search")
                 .newBuilder()
@@ -83,8 +87,9 @@ public class FanqieApi {
             }
             return result;
         } catch (Exception e) {
+            // Network or connection error — return null so callers can show the right message
             Log.e(TAG, "search failed", e);
-            return new ArrayList<>();
+            return null;
         }
     }
 

@@ -47,11 +47,17 @@
 
         <activity android:name=".AboutActivity" />
         <activity android:name=".FindBookActivity" />
-        <activity android:name=".SettingsActivity" />
+        <activity
+            android:name=".SettingsActivity"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".SearchResultActivity"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustPan|stateHidden" />
+        <activity
+            android:name=".BookDetailActivity"
+            android:screenOrientation="portrait" />
 
     </application>
 

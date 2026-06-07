@@ -9,40 +9,73 @@
 
     <include layout="@layout/layout_title" />
 
-    <!-- Search bar -->
-    <EditText
-        android:id="@+id/et_search"
+    <!-- Tab content area (takes all remaining space above bottom nav) -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:layout_marginLeft="12dp"
-        android:layout_marginRight="12dp"
-        android:layout_marginTop="6dp"
-        android:layout_marginBottom="4dp"
-        android:background="@drawable/bg_search"
-        android:drawableLeft="@android:drawable/ic_menu_search"
-        android:drawablePadding="6dp"
-        android:hint="搜索番茄小说…"
-        android:textColorHint="#999999"
-        android:textColor="#333333"
-        android:imeOptions="actionSearch"
-        android:inputType="text"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        android:singleLine="true"
-        android:textSize="14sp" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-    <com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout
-        android:id="@+id/refresh"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerview"
+        <!-- Bookshelf tab content -->
+        <LinearLayout
+            android:id="@+id/container_bookshelf"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp" />
+            android:orientation="vertical"
+            android:visibility="visible">
 
-    </com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout>
+            <EditText
+                android:id="@+id/et_search"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginLeft="12dp"
+                android:layout_marginRight="12dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/bg_search"
+                android:drawableLeft="@android:drawable/ic_menu_search"
+                android:drawablePadding="6dp"
+                android:hint="搜索番茄小说…"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:singleLine="true"
+                android:textColor="#333333"
+                android:textColorHint="#999999"
+                android:textSize="14sp" />
+
+            <com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout
+                android:id="@+id/refresh"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginLeft="5dp"
+                    android:layout_marginRight="5dp" />
+
+            </com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout>
+
+        </LinearLayout>
+
+        <!-- Book store fragment container (shown when book store tab is active) -->
+        <FrameLayout
+            android:id="@+id/container_book_store"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+    <!-- Bottom Navigation -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_nav_menu" />
 
 </LinearLayout>

@@ -12,6 +12,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -28,6 +29,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.bumptech.glide.Glide;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import com.jiajunhui.xapp.medialoader.MediaLoader;
 import com.jiajunhui.xapp.medialoader.bean.FileItem;
@@ -68,6 +70,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private View ib_more;
     private ImageView ib_refresh;
 
+    private View containerBookshelf;
+    private FrameLayout containerBookStore;
+    private TextView tvTitle;
+    private BookStoreFragment bookStoreFragment;
+
     private CustomPopWindow popWindow;
     private boolean isDel = false;
 
@@ -91,6 +98,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 }
                 final boolean keepPolling = hasPending;
                 runOnUiThread(() -> {
+                    if (isDestroyed() || isFinishing()) return;
                     bookLists.clear();
                     bookLists.addAll(books);
                     adapter.notifyDataSetChanged();
@@ -130,8 +138,24 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
     @Override
     protected void initView() {
-        TextView tv_title = (TextView) findViewById(R.id.tv_title);
-        tv_title.setText("书架");
+        tvTitle = (TextView) findViewById(R.id.tv_title);
+        tvTitle.setText("书架");
+
+        containerBookshelf = findViewById(R.id.container_bookshelf);
+        containerBookStore = (FrameLayout) findViewById(R.id.container_book_store);
+
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_bookshelf) {
+                showBookshelf();
+                return true;
+            } else if (id == R.id.nav_book_store) {
+                showBookStore();
+                return true;
+            }
+            return false;
+        });
 
         etSearch = (EditText) findViewById(R.id.et_search);
         etSearch.setOnEditorActionListener((v, actionId, event) -> {
@@ -176,6 +200,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 executor.execute(() -> {
                     List<BookList> books = getBooks();
                     runOnUiThread(() -> {
+                        if (isDestroyed() || isFinishing()) return;
                         bookLists.clear();
                         bookLists.addAll(books);
                         adapter.notifyDataSetChanged();
@@ -202,6 +227,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                             }
                             List<BookList> books = getBooks();
                             runOnUiThread(() -> {
+                                if (isDestroyed() || isFinishing()) return;
                                 bookLists.clear();
                                 bookLists.addAll(books);
                                 adapter.notifyDataSetChanged();
@@ -300,9 +326,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         }
                         executor.execute(() -> {
                             saveLocalBooks(toSave);
+                            List<BookList> saved = getBooks();
                             runOnUiThread(() -> {
+                                if (isDestroyed() || isFinishing()) return;
                                 bookLists.clear();
-                                bookLists.addAll(getBooks());
+                                bookLists.addAll(saved);
                                 adapter.notifyDataSetChanged();
                             });
                         });
@@ -313,6 +341,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             executor.execute(() -> {
                 List<BookList> books = getBooks();
                 runOnUiThread(() -> {
+                    if (isDestroyed() || isFinishing()) return;
                     bookLists.clear();
                     bookLists.addAll(books);
                     adapter.notifyDataSetChanged();
@@ -397,6 +426,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 view.findViewById(R.id.tv_share).setOnClickListener(this);
                 view.findViewById(R.id.add_book).setOnClickListener(this);
                 view.findViewById(R.id.find_book).setOnClickListener(this);
+                view.findViewById(R.id.tv_settings).setOnClickListener(this);
                 if (popWindow == null) {
                     popWindow = new CustomPopWindow.PopupWindowBuilder(this)
                             .setView(view)
@@ -424,6 +454,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 popWindow.dissmiss();
                 break;
 
+            case R.id.tv_settings:
+                startActivity(new Intent(this, SettingsActivity.class));
+                popWindow.dissmiss();
+                break;
+
 
             case R.id.tv_share:
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
@@ -433,6 +468,29 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 startActivity(shareIntent);
                 popWindow.dissmiss();
                 break;
+        }
+    }
+
+    private void showBookshelf() {
+        containerBookshelf.setVisibility(View.VISIBLE);
+        containerBookStore.setVisibility(View.GONE);
+        tvTitle.setText("书架");
+        ib_refresh.setVisibility(View.VISIBLE);
+        ib_more.setVisibility(View.VISIBLE);
+    }
+
+    private void showBookStore() {
+        containerBookshelf.setVisibility(View.GONE);
+        containerBookStore.setVisibility(View.VISIBLE);
+        tvTitle.setText("书城");
+        ib_refresh.setVisibility(View.GONE);
+        ib_more.setVisibility(View.GONE);
+
+        if (bookStoreFragment == null) {
+            bookStoreFragment = new BookStoreFragment();
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.container_book_store, bookStoreFragment)
+                    .commit();
         }
     }
 

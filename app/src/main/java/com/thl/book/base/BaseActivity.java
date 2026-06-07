@@ -3,12 +3,12 @@ package com.thl.book.base;
 import android.app.Activity;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.FragmentActivity;
+import androidx.appcompat.app.AppCompatActivity;
 
 /**
  * 功能描述：activity 基类
  **/
-public abstract class BaseActivity extends FragmentActivity {
+public abstract class BaseActivity extends AppCompatActivity {
 
     protected Activity mContext;
 
