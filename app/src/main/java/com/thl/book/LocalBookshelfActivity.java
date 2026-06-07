@@ -174,7 +174,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     protected void onResume() {
         super.onResume();
         IntentFilter filter = new IntentFilter(UpdateChecker.ACTION_UPDATE_DONE);
-        registerReceiver(updateReceiver, filter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(updateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(updateReceiver, filter);
+        }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             initFirstData();
