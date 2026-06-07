@@ -9,13 +9,18 @@ import com.google.gson.JsonObject;
 import com.thl.book.network.dto.ChapterItem;
 import com.thl.book.network.dto.SearchItem;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import okhttp3.HttpUrl;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
@@ -25,38 +30,56 @@ import okhttp3.Response;
 public class FanqieApi {
 
     private static final String TAG = "FanqieApi";
-    private static final String SEARCH_BASE = "https://api.fanqienovel.com";
     private static final String DIR_BASE = "https://fanqienovel.com";
 
     private final OkHttpClient client;
     private final Gson gson;
     private final String proxyUrl;
+    private final String downloaderUrl;
+    private final String downloaderPassword;
 
-    public FanqieApi(String proxyUrl) {
+    public FanqieApi(String proxyUrl, String downloaderUrl, String downloaderPassword) {
         this.client = FanqieClient.get();
         this.gson = new Gson();
         this.proxyUrl = proxyUrl;
+        // 去掉末尾斜杠，防止拼出 //api/jobs
+        this.downloaderUrl = downloaderUrl != null
+                ? downloaderUrl.trim().replaceAll("/+$", "") : "";
+        this.downloaderPassword = downloaderPassword == null ? "" : downloaderPassword;
     }
 
-    /** Search books by keyword. Returns empty list on failure. */
+    // ── 搜索 ──────────────────────────────────────────────────────────────────
+
+    /** Search books via Tomato-Novel-Downloader instance. Returns empty list on failure. */
     public List<SearchItem> search(String keyword) {
-        HttpUrl url = HttpUrl.parse(SEARCH_BASE + "/api/author/search/search_book/v1/")
+        HttpUrl url = HttpUrl.parse(downloaderUrl + "/api/search")
                 .newBuilder()
-                .addQueryParameter("query", keyword)
-                .addQueryParameter("page_count", "10")
+                .addQueryParameter("q", keyword)
                 .build();
 
-        Request request = new Request.Builder().url(url).build();
-        try (Response response = client.newCall(request).execute()) {
+        try (Response response = client.newCall(authReq(url.toString()).build()).execute()) {
             if (!response.isSuccessful() || response.body() == null) return new ArrayList<>();
             String body = response.body().string();
             JsonObject root = gson.fromJson(body, JsonObject.class);
-            JsonArray items = root
-                    .getAsJsonObject("data")
-                    .getAsJsonArray("search_book_data");
+            if (!root.has("items")) return new ArrayList<>();
+            JsonArray items = root.getAsJsonArray("items");
             List<SearchItem> result = new ArrayList<>();
             for (JsonElement el : items) {
-                result.add(gson.fromJson(el, SearchItem.class));
+                JsonObject obj = el.getAsJsonObject();
+                SearchItem item = new SearchItem();
+                item.bookId = obj.has("book_id") ? obj.get("book_id").getAsString() : null;
+                item.bookName = obj.has("title") ? obj.get("title").getAsString() : null;
+                item.author = obj.has("author") ? obj.get("author").getAsString() : null;
+                if (obj.has("raw") && obj.get("raw").isJsonObject()) {
+                    JsonObject raw = obj.getAsJsonObject("raw");
+                    if (raw.has("thumb_url") && !raw.get("thumb_url").isJsonNull())
+                        item.coverUrl = raw.get("thumb_url").getAsString();
+                    if (raw.has("abstract") && !raw.get("abstract").isJsonNull())
+                        item.summary = raw.get("abstract").getAsString();
+                    if (raw.has("serial_count") && !raw.get("serial_count").isJsonNull())
+                        item.chapterCount = raw.get("serial_count").getAsInt();
+                }
+                result.add(item);
             }
             return result;
         } catch (Exception e) {
@@ -64,6 +87,203 @@ public class FanqieApi {
             return new ArrayList<>();
         }
     }
+
+    // ── Downloader Jobs API ───────────────────────────────────────────────────
+
+    /**
+     * POST /api/jobs {"book_id": bookId} → job id, -1 on failure, -2 if server busy (429).
+     */
+    public long createJob(String bookId) {
+        String json = "{\"book_id\":\"" + bookId + "\"}";
+        Request req = authReq(downloaderUrl + "/api/jobs")
+                .post(RequestBody.create(json, MediaType.parse("application/json")))
+                .build();
+        try (Response resp = client.newCall(req).execute()) {
+            String body = resp.body() != null ? resp.body().string() : "(null)";
+            Log.d(TAG, "createJob http=" + resp.code() + " body=" + body);
+
+            if (resp.code() == 429) {
+                Log.d(TAG, "createJob 429: server busy");
+                return -2; // caller should wait then retry
+            }
+            if (!resp.isSuccessful()) return -1;
+            JsonObject obj = gson.fromJson(body, JsonObject.class);
+            return obj.has("id") ? obj.get("id").getAsLong() : -1;
+        } catch (Exception e) {
+            Log.e(TAG, "createJob exception", e);
+            return -1;
+        }
+    }
+
+    /**
+     * Block until no queued/running jobs remain on the server, or timeout (~20 min).
+     */
+    public void waitForActiveJobToFinish() {
+        for (int tick = 0; tick < 600; tick++) {
+            try { Thread.sleep(2000); } catch (InterruptedException e) { break; }
+            long activeId = findActiveJob();
+            if (activeId < 0) {
+                Log.d(TAG, "waitForActiveJobToFinish: no active jobs, proceeding");
+                return;
+            }
+            Log.d(TAG, "waitForActiveJobToFinish: job " + activeId + " still running, tick=" + tick);
+        }
+    }
+
+    /** GET /api/jobs → return id of first Queued/Running job, or -1. */
+    private long findActiveJob() {
+        Request req = authReq(downloaderUrl + "/api/jobs").build();
+        try (Response resp = client.newCall(req).execute()) {
+            if (!resp.isSuccessful() || resp.body() == null) return -1;
+            JsonObject root = gson.fromJson(resp.body().string(), JsonObject.class);
+            if (!root.has("items")) return -1;
+            for (JsonElement el : root.getAsJsonArray("items")) {
+                JsonObject job = el.getAsJsonObject();
+                String state = job.has("state") ? job.get("state").getAsString() : "";
+                if ("queued".equalsIgnoreCase(state) || "running".equalsIgnoreCase(state)) {
+                    long id = job.get("id").getAsLong();
+                    Log.d(TAG, "reusing active job id=" + id + " state=" + state);
+                    return id;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "findActiveJob exception", e);
+        }
+        return -1;
+    }
+
+    /** GET /api/jobs?id=<id> → job JsonObject, or null on failure. */
+    public JsonObject getJobInfo(long jobId) {
+        HttpUrl url = HttpUrl.parse(downloaderUrl + "/api/jobs")
+                .newBuilder()
+                .addQueryParameter("id", String.valueOf(jobId))
+                .build();
+        try (Response resp = client.newCall(authReq(url.toString()).build()).execute()) {
+            if (!resp.isSuccessful() || resp.body() == null) return null;
+            JsonObject root = gson.fromJson(resp.body().string(), JsonObject.class);
+            if (!root.has("items") || root.getAsJsonArray("items").size() == 0) return null;
+            return root.getAsJsonArray("items").get(0).getAsJsonObject();
+        } catch (Exception e) {
+            Log.e(TAG, "getJobInfo exception", e);
+            return null;
+        }
+    }
+
+    /** POST /api/jobs/{id}/format {"value": "txt"} */
+    public void submitFormatChoice(long jobId) {
+        String json = "{\"value\":\"txt\"}";
+        Request req = authReq(downloaderUrl + "/api/jobs/" + jobId + "/format")
+                .post(RequestBody.create(json, MediaType.parse("application/json")))
+                .build();
+        try (Response resp = client.newCall(req).execute()) {
+            Log.d(TAG, "submitFormatChoice http=" + resp.code());
+        } catch (Exception e) {
+            Log.e(TAG, "submitFormatChoice exception", e);
+        }
+    }
+
+    /** POST /api/jobs/{id}/book_name {"value": null} → use default name */
+    public void submitBookNameChoice(long jobId) {
+        Request req = authReq(downloaderUrl + "/api/jobs/" + jobId + "/book_name")
+                .post(RequestBody.create("{\"value\":null}", MediaType.parse("application/json")))
+                .build();
+        try (Response resp = client.newCall(req).execute()) {
+            Log.d(TAG, "submitBookNameChoice http=" + resp.code());
+        } catch (Exception e) {
+            Log.e(TAG, "submitBookNameChoice exception", e);
+        }
+    }
+
+    /**
+     * GET /api/library?name={title} → rel_path of matching TXT file, null if not found.
+     * Retries a few times to allow async library scan to complete.
+     */
+    public String findLibraryFile(String title) {
+        for (int attempt = 0; attempt < 5; attempt++) {
+            if (attempt > 0) {
+                try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+            }
+            HttpUrl url = HttpUrl.parse(downloaderUrl + "/api/library")
+                    .newBuilder()
+                    .addQueryParameter("name", title)
+                    .build();
+            try (Response resp = client.newCall(authReq(url.toString()).build()).execute()) {
+                if (!resp.isSuccessful() || resp.body() == null) continue;
+                JsonObject root = gson.fromJson(resp.body().string(), JsonObject.class);
+                if (!root.has("items")) continue;
+                JsonArray items = root.getAsJsonArray("items");
+                // 优先找直接的 TXT 文件
+                for (JsonElement el : items) {
+                    JsonObject item = el.getAsJsonObject();
+                    String kind = item.has("kind") ? item.get("kind").getAsString() : "";
+                    String ext = item.has("ext") ? item.get("ext").getAsString() : "";
+                    if ("file".equals(kind) && "txt".equals(ext)) {
+                        return item.get("rel_path").getAsString();
+                    }
+                }
+                // 如果是目录（书名子目录），进去找 TXT
+                for (JsonElement el : items) {
+                    JsonObject item = el.getAsJsonObject();
+                    if ("dir".equals(item.has("kind") ? item.get("kind").getAsString() : "")) {
+                        String subPath = findTxtInDir(item.get("rel_path").getAsString(), title);
+                        if (subPath != null) return subPath;
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "findLibraryFile exception", e);
+            }
+        }
+        return null;
+    }
+
+    private String findTxtInDir(String dirRelPath, String title) {
+        HttpUrl url = HttpUrl.parse(downloaderUrl + "/api/library")
+                .newBuilder()
+                .addQueryParameter("path", dirRelPath)
+                .addQueryParameter("name", title)
+                .build();
+        try (Response resp = client.newCall(authReq(url.toString()).build()).execute()) {
+            if (!resp.isSuccessful() || resp.body() == null) return null;
+            JsonObject root = gson.fromJson(resp.body().string(), JsonObject.class);
+            if (!root.has("items")) return null;
+            for (JsonElement el : root.getAsJsonArray("items")) {
+                JsonObject item = el.getAsJsonObject();
+                if ("file".equals(item.has("kind") ? item.get("kind").getAsString() : "")
+                        && "txt".equals(item.has("ext") ? item.get("ext").getAsString() : "")) {
+                    return item.get("rel_path").getAsString();
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "findTxtInDir exception", e);
+        }
+        return null;
+    }
+
+    /** GET /download/{relPath} → save to outputPath. Returns true on success. */
+    public boolean downloadFileToPath(String relPath, String outputPath) {
+        String encodedPath = relPath.replace(" ", "%20");
+        Request req = authReq(downloaderUrl + "/download/" + encodedPath).build();
+        try (Response resp = client.newCall(req).execute()) {
+            if (!resp.isSuccessful() || resp.body() == null) {
+                Log.e(TAG, "downloadFileToPath failed: http " + resp.code());
+                return false;
+            }
+            File outFile = new File(outputPath);
+            outFile.getParentFile().mkdirs();
+            try (InputStream in = resp.body().byteStream();
+                 FileOutputStream out = new FileOutputStream(outFile)) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+            }
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "downloadFileToPath exception", e);
+            return false;
+        }
+    }
+
+    // ── 章节列表（目录页直接获取，不需要认证）────────────────────────────────
 
     /** Get ordered chapter list for a book. Returns empty list on failure. */
     public List<ChapterItem> getChapterList(String bookId) {
@@ -77,63 +297,49 @@ public class FanqieApi {
             if (!response.isSuccessful() || response.body() == null) return new ArrayList<>();
             String body = response.body().string();
             JsonObject root = gson.fromJson(body, JsonObject.class);
+            if (!root.has("data") || root.get("data").isJsonNull()) return new ArrayList<>();
             JsonObject data = root.getAsJsonObject("data");
 
-            // The key name varies across API versions
-            JsonArray chapters = null;
-            for (String key : new String[]{"chapterList", "chapter_list", "item_list", "allItemIds"}) {
+            // chapterListWithVolume: array of volumes, each volume is an array of chapter objects
+            if (data.has("chapterListWithVolume") && data.get("chapterListWithVolume").isJsonArray()) {
+                JsonArray volumes = data.getAsJsonArray("chapterListWithVolume");
+                List<ChapterItem> result = new ArrayList<>();
+                for (JsonElement vol : volumes) {
+                    if (vol.isJsonArray()) {
+                        for (JsonElement el : vol.getAsJsonArray()) {
+                            if (el.isJsonObject()) result.add(gson.fromJson(el, ChapterItem.class));
+                        }
+                    } else if (vol.isJsonObject()) {
+                        result.add(gson.fromJson(vol, ChapterItem.class));
+                    }
+                }
+                if (!result.isEmpty()) return result;
+            }
+
+            // Fallback
+            for (String key : new String[]{"chapterList", "chapter_list", "item_list"}) {
                 if (data.has(key) && data.get(key).isJsonArray()) {
-                    chapters = data.getAsJsonArray(key);
-                    break;
+                    List<ChapterItem> result = new ArrayList<>();
+                    for (JsonElement el : data.getAsJsonArray(key)) {
+                        if (el.isJsonObject()) result.add(gson.fromJson(el, ChapterItem.class));
+                    }
+                    if (!result.isEmpty()) return result;
                 }
             }
-            if (chapters == null) return new ArrayList<>();
-
-            List<ChapterItem> result = new ArrayList<>();
-            for (JsonElement el : chapters) {
-                result.add(gson.fromJson(el, ChapterItem.class));
-            }
-            return result;
+            return new ArrayList<>();
         } catch (Exception e) {
-            Log.e(TAG, "getChapterList failed", e);
+            Log.e(TAG, "getChapterList exception", e);
             return new ArrayList<>();
         }
     }
 
-    /**
-     * Download chapter content via third-party proxy.
-     * Returns plain text content, or null on failure.
-     * Fetches up to 20 chapters per call; here we fetch one at a time for simplicity.
-     */
-    public String getChapterContent(String itemId) throws IOException {
-        HttpUrl url = HttpUrl.parse(proxyUrl + "/reading/reader/batch_full/v")
-                .newBuilder()
-                .addQueryParameter("item_ids", itemId)
-                .addQueryParameter("aid", "1967")
-                .build();
+    // ── 私有工具 ──────────────────────────────────────────────────────────────
 
-        Request request = new Request.Builder().url(url).build();
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful() || response.body() == null) {
-                throw new IOException("HTTP " + response.code());
-            }
-            String body = response.body().string();
-            JsonObject root = gson.fromJson(body, JsonObject.class);
-
-            // Try to find content in various response shapes
-            JsonObject data = root.has("data") ? root.getAsJsonObject("data") : root;
-            if (data.has("chapterData")) {
-                JsonObject chapterData = data.getAsJsonArray("chapterData")
-                        .get(0).getAsJsonObject();
-                if (chapterData.has("content")) {
-                    return chapterData.get("content").getAsString();
-                }
-            }
-            // Fallback: look for content field directly
-            if (data.has("content")) {
-                return data.get("content").getAsString();
-            }
-            throw new IOException("Unexpected response shape for item_id=" + itemId);
+    private Request.Builder authReq(String url) {
+        Request.Builder b = new Request.Builder().url(url);
+        if (!downloaderPassword.isEmpty()) {
+            b.header("x-tomato-password", downloaderPassword);
         }
+        return b;
     }
 }

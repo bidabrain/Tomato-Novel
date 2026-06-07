@@ -150,10 +150,15 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 if (isDel) {
                     lltDel.setVisibility(View.VISIBLE);
                     lltDel.setOnClickListener(v -> {
-                        DB.bookList().deleteById(book.getId());
-                        bookLists.clear();
-                        bookLists.addAll(getBooks());
-                        adapter.notifyDataSetChanged();
+                        executor.execute(() -> {
+                            DB.bookList().deleteById(book.getId());
+                            List<BookList> books = getBooks();
+                            runOnUiThread(() -> {
+                                bookLists.clear();
+                                bookLists.addAll(books);
+                                adapter.notifyDataSetChanged();
+                            });
+                        });
                     });
                 } else {
                     lltDel.setVisibility(View.GONE);
@@ -215,10 +220,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private void initFirstData() {
         boolean initFirst = SharedPreferencesUtils.getBoolean(this, "initFristData", true);
         if (initFirst) {
+            // Mark as done immediately so a crash during scan doesn't cause repeated imports
+            SharedPreferencesUtils.saveBoolean(this, "initFristData", false);
             MediaLoader.getLoader().loadFiles(this, new OnFileLoaderCallBack(FileType.DOC) {
                 @Override
                 public void onResult(FileResult result) {
-                    SharedPreferencesUtils.saveBoolean(LocalBookshelfActivity.this, "initFristData", false);
                     if (result != null && result.getItems() != null && !result.getItems().isEmpty()) {
                         List<BookList> toSave = new ArrayList<>();
                         for (FileItem item : result.getItems()) {
@@ -322,6 +328,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 startActivity(new Intent(this, AboutActivity.class));
                 popWindow.dissmiss();
                 break;
+
 
             case R.id.tv_share:
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);

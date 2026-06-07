@@ -66,7 +66,10 @@ public class SearchResultActivity extends BaseActivity {
 
     private void doSearch(String query) {
         executor.execute(() -> {
-            FanqieApi api = new FanqieApi(FanqieClient.getProxyUrl(this));
+            FanqieApi api = new FanqieApi(
+                    FanqieClient.getProxyUrl(this),
+                    FanqieClient.getDownloaderUrl(this),
+                    FanqieClient.getDownloaderPassword(this));
             List<SearchItem> items = api.search(query);
             runOnUiThread(() -> {
                 results.clear();
@@ -78,15 +81,8 @@ public class SearchResultActivity extends BaseActivity {
     }
 
     private void addToShelf(SearchItem item) {
-        // Check duplicate
-        List<BookList> existing = DB.bookList().findByTomatoBookId(item.bookId);
-        if (!existing.isEmpty()) {
-            Toast.makeText(this, "书架中已有《" + item.bookName + "》", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
         ProgressDialog dialog = new ProgressDialog(this);
-        dialog.setMessage("正在下载《" + item.bookName + "》…");
+        dialog.setMessage("正在检查书架…");
         dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         dialog.setCancelable(false);
         dialog.show();
@@ -97,10 +93,27 @@ public class SearchResultActivity extends BaseActivity {
         ).getAbsolutePath();
 
         executor.execute(() -> {
+            // 重复检查也在后台线程
+            List<BookList> existing = DB.bookList().findByTomatoBookId(item.bookId);
+            if (!existing.isEmpty()) {
+                runOnUiThread(() -> {
+                    dialog.dismiss();
+                    Toast.makeText(this, "书架中已有《" + item.bookName + "》", Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
+
+            runOnUiThread(() -> dialog.setMessage("正在下载《" + item.bookName + "》…"));
+
             NovelDownloadManager manager = new NovelDownloadManager(this);
             manager.downloadFull(item.bookId, item.bookName, item.author,
                     item.coverUrl, outputPath,
                     new NovelDownloadManager.ProgressCallback() {
+                        @Override
+                        public void onStatus(String message) {
+                            runOnUiThread(() -> dialog.setMessage(message));
+                        }
+
                         @Override
                         public void onProgress(int downloaded, int total) {
                             runOnUiThread(() -> {

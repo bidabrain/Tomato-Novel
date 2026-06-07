@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:background="#F5CDCD"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/iv_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="12dp"
+            android:src="@drawable/bt_nav_back"
+            android:scaleType="centerInside" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="设置"
+            android:textSize="18sp"
+            android:textColor="#000000"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="番茄下载服务器"
+                android:textSize="13sp"
+                android:textColor="#888888"
+                android:paddingBottom="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Downloader URL"
+                android:textSize="15sp"
+                android:textColor="#333333"
+                android:paddingBottom="4dp" />
+
+            <EditText
+                android:id="@+id/et_downloader_url"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="https://fanqie.meegocloud.pp.ua"
+                android:inputType="textUri"
+                android:singleLine="true"
+                android:paddingBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="访问密码（如未设置密码留空）"
+                android:textSize="15sp"
+                android:textColor="#333333"
+                android:paddingTop="12dp"
+                android:paddingBottom="4dp" />
+
+            <EditText
+                android:id="@+id/et_downloader_password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="留空表示无密码"
+                android:inputType="textPassword"
+                android:singleLine="true"
+                android:paddingBottom="16dp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEEEEE"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="内容代理（正文下载）"
+                android:textSize="13sp"
+                android:textColor="#888888"
+                android:paddingBottom="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="代理服务器 URL"
+                android:textSize="15sp"
+                android:textColor="#333333"
+                android:paddingBottom="4dp" />
+
+            <EditText
+                android:id="@+id/et_proxy_url"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="https://api.cenguigui.cn"
+                android:inputType="textUri"
+                android:singleLine="true"
+                android:paddingBottom="16dp" />
+
+            <Button
+                android:id="@+id/btn_save"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="保存"
+                android:backgroundTint="#F5CDCD"
+                android:textColor="#000000" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

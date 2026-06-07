@@ -1,7 +1,6 @@
 package com.thl.book.network;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -10,10 +9,10 @@ import java.util.concurrent.TimeUnit;
 
 public class FanqieClient {
 
-    // Default proxy - can be overridden in Settings
-    public static final String DEFAULT_PROXY = "https://api.cenguigui.cn";
-    private static final String PREF_NAME = "tomato_prefs";
-    private static final String KEY_PROXY = "fanqie_proxy";
+    // ── 服务器配置（固化，修改方式见 README） ─────────────────────────────────
+    private static final String DOWNLOADER_URL      = "https://fanqie.meegocloud.pp.ua";
+    private static final String DOWNLOADER_PASSWORD = "sakura";
+    // ─────────────────────────────────────────────────────────────────────────
 
     private static OkHttpClient sClient;
 
@@ -33,13 +32,16 @@ public class FanqieClient {
         return sClient;
     }
 
-    public static String getProxyUrl(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        return prefs.getString(KEY_PROXY, DEFAULT_PROXY);
+    public static String getDownloaderUrl(Context context) {
+        return DOWNLOADER_URL;
     }
 
-    public static void setProxyUrl(Context context, String url) {
-        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-                .edit().putString(KEY_PROXY, url).apply();
+    public static String getDownloaderPassword(Context context) {
+        return DOWNLOADER_PASSWORD;
+    }
+
+    /** @deprecated proxy is no longer used */
+    public static String getProxyUrl(Context context) {
+        return "";
     }
 }

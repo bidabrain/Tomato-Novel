@@ -18,6 +18,22 @@ _Install the APK and enjoy — screenshots coming soon._
 
 Get the latest release APK from the [Releases](../../releases) page.
 
+## Server Configuration
+
+The app connects to a self-hosted [Tomato-Novel-Downloader](https://github.com/Dlankevi/Tomato-Novel-Downloader) instance for search and download.
+The server URL and password are hardcoded in:
+
+```
+app/src/main/java/com/thl/book/network/FanqieClient.java
+```
+
+```java
+private static final String DOWNLOADER_URL      = "https://fanqie.meegocloud.pp.ua";
+private static final String DOWNLOADER_PASSWORD = "sakura";
+```
+
+To point to a different server, edit those two constants and rebuild.
+
 ## Build
 
 Requirements: JDK 11+, Android SDK (command-line tools or Android Studio)
