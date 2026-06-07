@@ -19,9 +19,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.bumptech.glide.Glide;
 
 import com.jiajunhui.xapp.medialoader.MediaLoader;
 import com.jiajunhui.xapp.medialoader.bean.FileItem;
@@ -187,9 +189,21 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     lltDel.setVisibility(View.GONE);
                 }
 
+                ImageView ivCover = holder.getView(R.id.iv_cover);
                 TextView tvName = holder.getView(R.id.tv_name);
                 TextView tvMsg = holder.getView(R.id.tv_msg);
                 View tomatoBadge = holder.getView(R.id.v_tomato_badge);
+
+                String coverUrl = book.getCoverUrl();
+                if (coverUrl != null && !coverUrl.isEmpty()) {
+                    Glide.with(LocalBookshelfActivity.this)
+                            .load(coverUrl)
+                            .placeholder(R.mipmap.cover_default_new)
+                            .error(R.mipmap.cover_default_new)
+                            .into(ivCover);
+                } else {
+                    ivCover.setImageResource(R.mipmap.cover_default_new);
+                }
 
                 tvName.setText(book.getBookname());
                 tvMsg.setText(book.getMsg());
@@ -432,7 +446,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         downloadExecutor.execute(() -> {
             DB.bookList().updateDownloadResult(
-                    book.getTomatoBookId(), book.getBookname(), "", "下载中…", null);
+                    book.getTomatoBookId(), book.getBookname(), "", "下载中…", null, book.getCoverUrl());
             sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE).putExtra("total_new", 0));
             runOnUiThread(() -> Toast.makeText(this,
                     "《" + book.getBookname() + "》重新下载中，完成后通知", Toast.LENGTH_SHORT).show());
@@ -454,7 +468,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         @Override
                         public void onError(String message) {
                             DB.bookList().updateDownloadResult(
-                                    book.getTomatoBookId(), book.getBookname(), "", "下载失败，点击重试", null);
+                                    book.getTomatoBookId(), book.getBookname(), "", "下载失败，点击重试", null, book.getCoverUrl());
                             NotifyHelper.send(appCtx, "下载失败",
                                     "《" + book.getBookname() + "》" + message);
                             appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)

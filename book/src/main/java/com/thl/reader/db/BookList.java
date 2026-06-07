@@ -40,4 +40,8 @@ public class BookList implements Serializable {
 
     public String getTomatoBookId() { return tomatoBookId; }
     public void setTomatoBookId(String tomatoBookId) { this.tomatoBookId = tomatoBookId; }
+
+    private String coverUrl;
+    public String getCoverUrl() { return coverUrl; }
+    public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
 }

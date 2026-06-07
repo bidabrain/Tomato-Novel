@@ -106,10 +106,11 @@ public class SearchResultActivity extends BaseActivity {
                 placeholder.setIsTomato(1);
                 placeholder.setTomatoBookId(item.bookId);
                 placeholder.setMsg("下载中…");
+                placeholder.setCoverUrl(item.coverUrl);
                 DB.save(placeholder);
             } else {
                 // 已有失败占位，重置状态
-                DB.bookList().updateDownloadResult(item.bookId, item.bookName, "", "下载中…", null);
+                DB.bookList().updateDownloadResult(item.bookId, item.bookName, "", "下载中…", null, item.coverUrl);
             }
             appCtx.sendBroadcast(new android.content.Intent(UpdateChecker.ACTION_UPDATE_DONE)
                     .putExtra("total_new", 0));
@@ -136,7 +137,7 @@ public class SearchResultActivity extends BaseActivity {
                         public void onError(String message) {
                             // 占位条目改为失败提示，保留在书架方便用户重试
                             DB.bookList().updateDownloadResult(
-                                    item.bookId, item.bookName, "", "下载失败，点击重试", null);
+                                    item.bookId, item.bookName, "", "下载失败，点击重试", null, item.coverUrl);
                             NotifyHelper.send(appCtx,
                                     "下载失败", "《" + item.bookName + "》" + message);
                             appCtx.sendBroadcast(

@@ -13,7 +13,7 @@ import com.thl.reader.db.dao.TomatoBookDao;
 
 @Database(
     entities = {BookList.class, BookMarks.class, BookCatalogue.class, TomatoBook.class},
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 public abstract class AppDatabase extends RoomDatabase {

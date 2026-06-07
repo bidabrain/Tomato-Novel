@@ -41,6 +41,6 @@ public interface BookListDao {
     @Query("UPDATE book_list SET begin = :begin WHERE id = :id")
     void updateBegin(int id, long begin);
 
-    @Query("UPDATE book_list SET bookname = :bookname, bookpath = :bookpath, msg = :msg, charset = :charset WHERE tomatoBookId = :tomatoBookId")
-    void updateDownloadResult(String tomatoBookId, String bookname, String bookpath, String msg, String charset);
+    @Query("UPDATE book_list SET bookname = :bookname, bookpath = :bookpath, msg = :msg, charset = :charset, coverUrl = :coverUrl WHERE tomatoBookId = :tomatoBookId")
+    void updateDownloadResult(String tomatoBookId, String bookname, String bookpath, String msg, String charset, String coverUrl);
 }

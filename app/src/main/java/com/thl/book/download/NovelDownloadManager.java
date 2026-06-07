@@ -164,7 +164,7 @@ public class NovelDownloadManager {
         // 更新占位条目（若不存在则新增）
         List<BookList> existing = DB.bookList().findByTomatoBookId(bookId);
         if (!existing.isEmpty()) {
-            DB.bookList().updateDownloadResult(bookId, jobTitle, outputPath, msg, "UTF-8");
+            DB.bookList().updateDownloadResult(bookId, jobTitle, outputPath, msg, "UTF-8", coverUrl);
         } else {
             BookList bookList = new BookList();
             bookList.setBookname(jobTitle);
@@ -173,6 +173,7 @@ public class NovelDownloadManager {
             bookList.setTomatoBookId(bookId);
             bookList.setMsg(msg);
             bookList.setCharset("UTF-8");
+            bookList.setCoverUrl(coverUrl);
             DB.save(bookList);
         }
 
