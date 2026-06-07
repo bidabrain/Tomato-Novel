@@ -1,13 +1,17 @@
 package com.thl.book;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -243,20 +247,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             registerReceiver(updateReceiver, filter);
         }
 
-        // Android 13+ removed legacy storage permissions — skip the request
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            initFirstData();
-        } else {
-            requestPermissins(new PermissionUtils.OnPermissionListener() {
-                @Override
-                public void onPermissionGranted() { initFirstData(); }
-                @Override
-                public void onPermissionDenied(String[] deniedPermissions) {
-                    initFirstData(); // still load from DB even if denied
-                }
-            });
-        }
+        requestStoragePermissionThenInit();
     }
 
     @Override
@@ -408,6 +399,46 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 "android.permission.WRITE_EXTERNAL_STORAGE"
         };
         PermissionUtils.requestPermissions(this, 0, permissions, listener);
+    }
+
+    /**
+     * 根据 Android 版本请求合适的存储权限，授权后再初始化数据。
+     * - API 30+（Android 11+）：需要"所有文件访问权限"（MANAGE_EXTERNAL_STORAGE）
+     * - API 23-29：请求传统读写权限
+     * - API < 23：无需运行时权限
+     */
+    private void requestStoragePermissionThenInit() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+：treader/ 位于共享存储根目录，必须有 MANAGE_EXTERNAL_STORAGE
+            if (Environment.isExternalStorageManager()) {
+                initFirstData();
+            } else {
+                new AlertDialog.Builder(this)
+                        .setTitle("需要存储权限")
+                        .setMessage("应用需要「所有文件访问权限」才能读写书籍缓存文件及手动添加本地图书，请在下一页面中为本应用开启该权限。")
+                        .setPositiveButton("去授权", (d, w) -> {
+                            Intent intent = new Intent(
+                                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                    Uri.parse("package:" + getPackageName()));
+                            startActivity(intent);
+                        })
+                        .setNegativeButton("暂时跳过", (d, w) -> initFirstData())
+                        .setCancelable(false)
+                        .show();
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android 6-10：请求传统读写权限
+            requestPermissins(new PermissionUtils.OnPermissionListener() {
+                @Override
+                public void onPermissionGranted() { initFirstData(); }
+                @Override
+                public void onPermissionDenied(String[] deniedPermissions) {
+                    initFirstData(); // 拒绝时仍加载数据库中已有的书
+                }
+            });
+        } else {
+            initFirstData();
+        }
     }
 
     @Override
