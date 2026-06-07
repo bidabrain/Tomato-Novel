@@ -49,7 +49,7 @@ public class UpdateChecker {
             int totalNew = 0;
 
             for (BookList book : tomatoBooks) {
-                String originalMsg = book.getMsg();
+                String originalMsg = "更新中…".equals(book.getMsg()) ? "" : book.getMsg();
                 try {
                     int newChapters = manager.downloadNewChapters(book);
                     totalNew += newChapters;
