@@ -1,6 +1,5 @@
 package com.thl.book;
 
-import android.app.ProgressDialog;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -81,63 +80,41 @@ public class SearchResultActivity extends BaseActivity {
     }
 
     private void addToShelf(SearchItem item) {
-        ProgressDialog dialog = new ProgressDialog(this);
-        dialog.setMessage("正在检查书架…");
-        dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        dialog.setCancelable(false);
-        dialog.show();
-
         String outputPath = new File(
                 NovelDownloadManager.getTomatoDir(this),
                 item.bookName.replaceAll("[\\\\/:*?\"<>|]", "_") + ".txt"
         ).getAbsolutePath();
 
+        // 用 Application context，避免 Activity 销毁后通知发不出去
+        final android.content.Context appCtx = getApplicationContext();
+
         executor.execute(() -> {
-            // 重复检查也在后台线程
             List<BookList> existing = DB.bookList().findByTomatoBookId(item.bookId);
             if (!existing.isEmpty()) {
-                runOnUiThread(() -> {
-                    dialog.dismiss();
-                    Toast.makeText(this, "书架中已有《" + item.bookName + "》", Toast.LENGTH_SHORT).show();
-                });
+                runOnUiThread(() -> Toast.makeText(this,
+                        "书架中已有《" + item.bookName + "》", Toast.LENGTH_SHORT).show());
                 return;
             }
 
-            runOnUiThread(() -> dialog.setMessage("正在下载《" + item.bookName + "》…"));
+            runOnUiThread(() -> Toast.makeText(this,
+                    "《" + item.bookName + "》已提交下载，完成后通知", Toast.LENGTH_SHORT).show());
 
-            NovelDownloadManager manager = new NovelDownloadManager(this);
+            NovelDownloadManager manager = new NovelDownloadManager(appCtx);
             manager.downloadFull(item.bookId, item.bookName, item.author,
                     item.coverUrl, outputPath,
                     new NovelDownloadManager.ProgressCallback() {
-                        @Override
-                        public void onStatus(String message) {
-                            runOnUiThread(() -> dialog.setMessage(message));
-                        }
-
-                        @Override
-                        public void onProgress(int downloaded, int total) {
-                            runOnUiThread(() -> {
-                                dialog.setMax(total);
-                                dialog.setProgress(downloaded);
-                            });
-                        }
+                        @Override public void onProgress(int downloaded, int total) {}
 
                         @Override
                         public void onComplete() {
-                            runOnUiThread(() -> {
-                                dialog.dismiss();
-                                Toast.makeText(SearchResultActivity.this,
-                                        "《" + item.bookName + "》已添加到书架", Toast.LENGTH_SHORT).show();
-                            });
+                            NotifyHelper.send(appCtx,
+                                    "下载完成", "《" + item.bookName + "》已添加到书架");
                         }
 
                         @Override
                         public void onError(String message) {
-                            runOnUiThread(() -> {
-                                dialog.dismiss();
-                                Toast.makeText(SearchResultActivity.this,
-                                        "下载失败：" + message, Toast.LENGTH_SHORT).show();
-                            });
+                            NotifyHelper.send(appCtx,
+                                    "下载失败", "《" + item.bookName + "》" + message);
                         }
                     });
         });

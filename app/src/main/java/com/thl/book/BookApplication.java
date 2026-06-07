@@ -10,6 +10,7 @@ public class BookApplication extends AppContext {
     @Override
     public void onCreate() {
         super.onCreate();
+        NotifyHelper.init(this);
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle bundle) {

@@ -68,14 +68,19 @@ public class NovelDownloadManager {
         String jobAuthor = author;
         int totalChapters = 0;
 
-        for (int tick = 0; tick < 600; tick++) { // 最多等 20 分钟
+        int nullStreak = 0;
+        for (int tick = 0; tick < 150; tick++) { // 最多等 5 分钟
             try { Thread.sleep(2000); } catch (InterruptedException e) { break; }
 
             JsonObject job = api.getJobInfo(jobId);
             if (job == null) {
-                callback.onError("获取任务状态失败");
-                return;
+                if (++nullStreak >= 3) {
+                    callback.onError("连续获取任务状态失败，请检查网络");
+                    return;
+                }
+                continue; // 单次网络抖动，跳过本轮
             }
+            nullStreak = 0;
 
             // 更新书名 / 作者
             if (job.has("title") && !job.get("title").isJsonNull())
@@ -197,10 +202,15 @@ public class NovelDownloadManager {
         }
         if (jobId < 0) return 0;
 
-        for (int tick = 0; tick < 600; tick++) {
+        int nullStreak = 0;
+        for (int tick = 0; tick < 150; tick++) { // 最多等 5 分钟
             try { Thread.sleep(2000); } catch (InterruptedException e) { break; }
             JsonObject job = api.getJobInfo(jobId);
-            if (job == null) return 0;
+            if (job == null) {
+                if (++nullStreak >= 3) return 0;
+                continue;
+            }
+            nullStreak = 0;
 
             if (job.has("format_options") && !job.get("format_options").isJsonNull())
                 api.submitFormatChoice(jobId);
