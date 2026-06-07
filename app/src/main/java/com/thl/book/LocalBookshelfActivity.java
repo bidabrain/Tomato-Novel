@@ -229,7 +229,13 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 }
 
                 tvName.setText(book.getBookname());
-                tvMsg.setText(book.getMsg());
+                String displayMsg = book.getMsg() != null ? book.getMsg() : "";
+                if (book.getChapterProgress() != null) {
+                    displayMsg = displayMsg.isEmpty()
+                            ? book.getChapterProgress()
+                            : displayMsg + "\n" + book.getChapterProgress();
+                }
+                tvMsg.setText(displayMsg);
                 tomatoBadge.setVisibility(book.getIsTomato() == 1 ? View.VISIBLE : View.GONE);
 
                 boolean isDownloading = book.getBookpath() == null || book.getBookpath().isEmpty();
@@ -352,7 +358,28 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     }
 
     private List<BookList> getBooks() {
-        return DB.bookList().findAll();
+        List<BookList> books = DB.bookList().findAll();
+        for (BookList book : books) {
+            if (book.getBookpath() == null || book.getBookpath().isEmpty()) continue;
+            List<com.thl.reader.db.BookCatalogue> chapters =
+                    DB.catalogue().findByBookpath(book.getBookpath());
+            if (chapters.isEmpty()) continue;
+            // 按起始位置排序
+            java.util.Collections.sort(chapters,
+                    (a, b) -> Long.compare(a.getBookCatalogueStartPos(), b.getBookCatalogueStartPos()));
+            int currentChapter = 0;
+            for (int i = 0; i < chapters.size(); i++) {
+                if (chapters.get(i).getBookCatalogueStartPos() <= book.getBegin()) {
+                    currentChapter = i + 1;
+                }
+            }
+            if (currentChapter > 0) {
+                book.setChapterProgress("读至第" + currentChapter + "章 / 共" + chapters.size() + "章");
+            } else {
+                book.setChapterProgress("共" + chapters.size() + "章，尚未开始");
+            }
+        }
+        return books;
     }
 
     @Override

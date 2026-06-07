@@ -1,6 +1,7 @@
 package com.thl.reader.db;
 
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 import java.io.Serializable;
@@ -44,4 +45,10 @@ public class BookList implements Serializable {
     private String coverUrl;
     public String getCoverUrl() { return coverUrl; }
     public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
+
+    /** 仅用于书架显示，不持久化到数据库 */
+    @Ignore
+    private String chapterProgress;
+    public String getChapterProgress() { return chapterProgress; }
+    public void setChapterProgress(String chapterProgress) { this.chapterProgress = chapterProgress; }
 }
