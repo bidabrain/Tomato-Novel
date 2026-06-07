@@ -13,6 +13,7 @@ public class BookList implements Serializable {
     private String bookname;
     private String bookpath;
     private long begin;
+    private long lastReadAt;   // 最近阅读时间戳（毫秒），0 表示从未阅读
     private String charset;
     private String msg;
     private int isTomato;       // 0=local, 1=Fanqie
@@ -29,6 +30,9 @@ public class BookList implements Serializable {
 
     public long getBegin() { return begin; }
     public void setBegin(long begin) { this.begin = begin; }
+
+    public long getLastReadAt() { return lastReadAt; }
+    public void setLastReadAt(long lastReadAt) { this.lastReadAt = lastReadAt; }
 
     public String getCharset() { return charset; }
     public void setCharset(String charset) { this.charset = charset; }

@@ -248,7 +248,7 @@ public class PageFactory {
                 @Override
                 public void run() {
                     super.run();
-                    DB.bookList().updateBegin(bookList.getId(), currentPage.getBegin());
+                    DB.bookList().updateBegin(bookList.getId(), currentPage.getBegin(), System.currentTimeMillis());
                 }
             }.start();
         }
