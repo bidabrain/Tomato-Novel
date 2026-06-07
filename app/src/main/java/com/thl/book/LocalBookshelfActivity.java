@@ -64,6 +64,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private boolean isDel = false;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // 独立线程用于下载，避免阻塞书架刷新
+    private final ExecutorService downloadExecutor = Executors.newSingleThreadExecutor();
 
     private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
         @Override
@@ -175,7 +177,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 boolean isDownloading = book.getBookpath() == null || book.getBookpath().isEmpty();
                 holder.getRootView().setAlpha(isDownloading ? 0.45f : 1f);
                 if (isDownloading) {
-                    holder.getRootView().setOnClickListener(null);
+                    holder.getRootView().setOnClickListener(v -> retryDownload(book));
                 } else {
                     holder.getRootView().setOnClickListener(v ->
                             ReadActivity.openBook(book, LocalBookshelfActivity.this));
@@ -384,5 +386,47 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    private void retryDownload(BookList book) {
+        if (book.getTomatoBookId() == null) return;
+        String outputPath = new java.io.File(
+                com.thl.book.download.NovelDownloadManager.getTomatoDir(this),
+                book.getBookname().replaceAll("[\\\\/:*?\"<>|]", "_") + ".txt"
+        ).getAbsolutePath();
+        final Context appCtx = getApplicationContext();
+
+        downloadExecutor.execute(() -> {
+            DB.bookList().updateDownloadResult(
+                    book.getTomatoBookId(), book.getBookname(), "", "下载中…", null);
+            sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE).putExtra("total_new", 0));
+            runOnUiThread(() -> Toast.makeText(this,
+                    "《" + book.getBookname() + "》重新下载中，完成后通知", Toast.LENGTH_SHORT).show());
+
+            com.thl.book.download.NovelDownloadManager manager =
+                    new com.thl.book.download.NovelDownloadManager(appCtx);
+            manager.downloadFull(book.getTomatoBookId(), book.getBookname(), null, null, outputPath,
+                    new com.thl.book.download.NovelDownloadManager.ProgressCallback() {
+                        @Override public void onProgress(int d, int t) {}
+
+                        @Override
+                        public void onComplete() {
+                            NotifyHelper.send(appCtx, "下载完成",
+                                    "《" + book.getBookname() + "》已添加到书架");
+                            appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                    .putExtra("total_new", 0));
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            DB.bookList().updateDownloadResult(
+                                    book.getTomatoBookId(), book.getBookname(), "", "下载失败，点击重试", null);
+                            NotifyHelper.send(appCtx, "下载失败",
+                                    "《" + book.getBookname() + "》" + message);
+                            appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                    .putExtra("total_new", 0));
+                        }
+                    });
+        });
     }
 }
