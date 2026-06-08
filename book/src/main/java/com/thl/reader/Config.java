@@ -13,6 +13,7 @@ public class Config {
     private final static String LIGHT_KEY = "light";
     private final static String SYSTEM_LIGHT_KEY = "systemlight";
     private final static String PAGE_MODE_KEY = "pagemode";
+    private final static String EINK_KEY = "eink";
 
     public final static String FONTTYPE_DEFAULT = "";
 
@@ -26,6 +27,8 @@ public class Config {
     public final static int PAGE_MODE_COVER = 1;
     public final static int PAGE_MODE_SLIDE = 2;
     public final static int PAGE_MODE_NONE = 3;
+
+    public final static int BOOK_BG_5 = 5;
 
     private Context mContext;
     private static Config config;
@@ -61,6 +64,14 @@ public class Config {
 
     public void setPageMode(int pageMode) {
         sp.edit().putInt(PAGE_MODE_KEY, pageMode).commit();
+    }
+
+    public boolean isEinkMode() {
+        return sp.getBoolean(EINK_KEY, false);
+    }
+
+    public void setEinkMode(boolean isEink) {
+        sp.edit().putBoolean(EINK_KEY, isEink).commit();
     }
 
     public int getBookBgType() {

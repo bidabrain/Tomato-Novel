@@ -33,7 +33,9 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
     CircleImageView iv_bg2;
     CircleImageView iv_bg3;
     CircleImageView iv_bg4;
+    CircleImageView iv_bg5;
     TextView tv_size_default;
+    TextView tv_eink;
 
     private Config config;
     private Boolean isSystem;
@@ -73,7 +75,9 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         iv_bg2 = (CircleImageView) findViewById(com.thl.reader.R.id.iv_bg_2);
         iv_bg3 = (CircleImageView) findViewById(com.thl.reader.R.id.iv_bg_3);
         iv_bg4 = (CircleImageView) findViewById(com.thl.reader.R.id.iv_bg_4);
+        iv_bg5 = (CircleImageView) findViewById(com.thl.reader.R.id.iv_bg_5);
         tv_size_default = (TextView) findViewById(com.thl.reader.R.id.tv_size_default);
+        tv_eink = (TextView) findViewById(com.thl.reader.R.id.tv_eink);
 
 
         findViewById(com.thl.reader.R.id.tv_dark).setOnClickListener(this);
@@ -87,6 +91,8 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         findViewById(com.thl.reader.R.id.iv_bg_2).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.iv_bg_3).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.iv_bg_4).setOnClickListener(this);
+        findViewById(com.thl.reader.R.id.iv_bg_5).setOnClickListener(this);
+        findViewById(com.thl.reader.R.id.tv_eink).setOnClickListener(this);
 
         WindowManager m = getWindow().getWindowManager();
         Display d = m.getDefaultDisplay();
@@ -110,6 +116,10 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
 
         //初始化字体
         selectBg(config.getBookBgType());
+
+        //初始化墨水屏模式
+        setTextViewSelect(tv_eink, config.isEinkMode());
+        tv_eink.setText(config.isEinkMode() ? "开启" : "关闭");
 
         sb_brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -140,6 +150,7 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
                 iv_bg2.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 iv_bg3.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 iv_bg4.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg5.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 break;
             case Config.BOOK_BG_1:
                 iv_bg_default.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
@@ -147,6 +158,7 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
                 iv_bg2.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 iv_bg3.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 iv_bg4.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg5.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 break;
             case Config.BOOK_BG_2:
                 iv_bg_default.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
@@ -154,6 +166,7 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
                 iv_bg2.setBorderWidth(DisplayUtils.dp2px(getContext(), 2));
                 iv_bg3.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 iv_bg4.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg5.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 break;
             case Config.BOOK_BG_3:
                 iv_bg_default.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
@@ -161,6 +174,7 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
                 iv_bg2.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 iv_bg3.setBorderWidth(DisplayUtils.dp2px(getContext(), 2));
                 iv_bg4.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg5.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 break;
             case Config.BOOK_BG_4:
                 iv_bg_default.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
@@ -168,6 +182,15 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
                 iv_bg2.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 iv_bg3.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
                 iv_bg4.setBorderWidth(DisplayUtils.dp2px(getContext(), 2));
+                iv_bg5.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                break;
+            case Config.BOOK_BG_5:
+                iv_bg_default.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg1.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg2.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg3.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg4.setBorderWidth(DisplayUtils.dp2px(getContext(), 0));
+                iv_bg5.setBorderWidth(DisplayUtils.dp2px(getContext(), 2));
                 break;
         }
     }
@@ -247,6 +270,18 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
             setBookBg(Config.BOOK_BG_4);
             selectBg(Config.BOOK_BG_4);
 
+        } else if (i == com.thl.reader.R.id.iv_bg_5) {
+            setBookBg(Config.BOOK_BG_5);
+            selectBg(Config.BOOK_BG_5);
+
+        } else if (i == com.thl.reader.R.id.tv_eink) {
+            boolean isEink = !config.isEinkMode();
+            config.setEinkMode(isEink);
+            setTextViewSelect(tv_eink, isEink);
+            tv_eink.setText(isEink ? "开启" : "关闭");
+            if (mSettingListener != null) {
+                mSettingListener.changeEinkMode(isEink);
+            }
         }
     }
 
@@ -306,6 +341,8 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         void changeTypeFace(Typeface typeface);
 
         void changeBookBg(int type);
+
+        void changeEinkMode(boolean isEink);
     }
 
 }

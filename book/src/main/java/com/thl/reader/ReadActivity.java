@@ -145,8 +145,10 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         display.getSize(displaysize);
         screenWidth = displaysize.x;
         screenHeight = displaysize.y;
-        //保持屏幕常亮
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        //保持屏幕常亮（墨水屏模式下不常亮，节省前光）
+        if (!config.isEinkMode()) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
         //隐藏
         hideSystemUI();
         //改变屏幕亮度
@@ -254,6 +256,20 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             @Override
             public void changeBookBg(int type) {
                 pageFactory.changeBookBg(type);
+            }
+
+            @Override
+            public void changeEinkMode(boolean isEink) {
+                if (isEink) {
+                    // 墨水屏模式：无动画翻页 + 纯白背景 + 取消常亮
+                    bookpage.setPageMode(Config.PAGE_MODE_NONE);
+                    config.setPageMode(Config.PAGE_MODE_NONE);
+                    pageFactory.changeBookBg(Config.BOOK_BG_5);
+                    config.setBookBg(Config.BOOK_BG_5);
+                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                } else {
+                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                }
             }
         });
 
@@ -506,21 +522,25 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         isShow = true;
         rl_progress.setVisibility(View.GONE);
         showSystemUI();
-        Animation topAnim = AnimationUtils.loadAnimation(this, R.anim.dialog_top_enter);
-        rl_bottom.startAnimation(topAnim);
-        appbar.startAnimation(topAnim);
+        if (!config.isEinkMode()) {
+            Animation topAnim = AnimationUtils.loadAnimation(this, R.anim.dialog_top_enter);
+            rl_bottom.startAnimation(topAnim);
+            appbar.startAnimation(topAnim);
+        }
         rl_bottom.setVisibility(View.VISIBLE);
         appbar.setVisibility(View.VISIBLE);
     }
 
     private void hideReadSetting() {
         isShow = false;
-        Animation topAnim = AnimationUtils.loadAnimation(this, R.anim.dialog_top_exit);
-        if (rl_bottom.getVisibility() == View.VISIBLE) {
-            rl_bottom.startAnimation(topAnim);
-        }
-        if (appbar.getVisibility() == View.VISIBLE) {
-            appbar.startAnimation(topAnim);
+        if (!config.isEinkMode()) {
+            Animation topAnim = AnimationUtils.loadAnimation(this, R.anim.dialog_top_exit);
+            if (rl_bottom.getVisibility() == View.VISIBLE) {
+                rl_bottom.startAnimation(topAnim);
+            }
+            if (appbar.getVisibility() == View.VISIBLE) {
+                appbar.startAnimation(topAnim);
+            }
         }
         rl_bottom.setVisibility(View.GONE);
         appbar.setVisibility(View.GONE);

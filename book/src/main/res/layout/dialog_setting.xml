@@ -130,5 +130,31 @@
             style="@style/setting_dialog_iv"
             android:layout_weight="1"
             android:src="@color/read_bg_4" />
+
+        <com.thl.reader.view.CircleImageView
+            android:id="@+id/iv_bg_5"
+            style="@style/setting_dialog_iv"
+            android:layout_weight="1"
+            android:src="@color/read_bg_5" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/setting_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="墨水屏模式"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tv_eink"
+            style="@style/setting_dialog_button"
+            android:text="关闭" />
     </LinearLayout>
 </LinearLayout>

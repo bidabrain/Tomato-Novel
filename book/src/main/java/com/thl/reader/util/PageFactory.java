@@ -751,6 +751,11 @@ public class PageFactory {
                 color = mContext.getResources().getColor(R.color.read_font_4);
                 setBookPageBg(mContext.getResources().getColor(R.color.read_bg_4));
                 break;
+            case Config.BOOK_BG_5:
+                canvas.drawColor(mContext.getResources().getColor(R.color.read_bg_5));
+                color = mContext.getResources().getColor(R.color.read_font_5);
+                setBookPageBg(mContext.getResources().getColor(R.color.read_bg_5));
+                break;
         }
 
         setBgBitmap(bitmap);
