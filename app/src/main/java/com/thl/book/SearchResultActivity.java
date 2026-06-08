@@ -33,6 +33,7 @@ public class SearchResultActivity extends BaseActivity {
 
     private RecyclerView recyclerView;
     private TextView tvEmpty;
+    private View layoutLoading;
     private List<SearchItem> results = new ArrayList<>();
     private SearchAdapter adapter;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -52,6 +53,7 @@ public class SearchResultActivity extends BaseActivity {
 
         recyclerView = findViewById(R.id.recyclerview);
         tvEmpty = findViewById(R.id.tv_empty);
+        layoutLoading = findViewById(R.id.layout_loading);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new SearchAdapter();
         recyclerView.setAdapter(adapter);
@@ -64,6 +66,7 @@ public class SearchResultActivity extends BaseActivity {
     }
 
     private void doSearch(String query) {
+        layoutLoading.setVisibility(View.VISIBLE);
         executor.execute(() -> {
             FanqieApi api = new FanqieApi(
                     FanqieClient.getProxyUrl(this),
@@ -73,6 +76,7 @@ public class SearchResultActivity extends BaseActivity {
             if (isDestroyed() || isFinishing()) return;
             runOnUiThread(() -> {
                 if (isDestroyed() || isFinishing()) return;
+                layoutLoading.setVisibility(View.GONE);
                 if (items == null) {
                     // Network / connection failure
                     tvEmpty.setText("连接服务器失败，请检查网络或服务器配置");

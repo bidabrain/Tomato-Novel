@@ -363,12 +363,10 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             return;
         }
         if (isShow) {
-            // Menu already visible — second back press exits
-            finish();
-        } else {
-            // First back gesture: show menu instead of exiting
-            showReadSetting();
+            hideReadSetting();
+            return;
         }
+        finish();
     }
 
     @Override
