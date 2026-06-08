@@ -49,13 +49,25 @@ import com.thl.reader.util.FileUtils;
 
 import com.thl.reader.db.DB;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -81,6 +93,10 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     // 独立线程用于下载，避免阻塞书架刷新
     private final ExecutorService downloadExecutor = Executors.newSingleThreadExecutor();
+
+    private final ActivityResultLauncher<String> importLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> { if (uri != null) importBookshelf(uri); });
 
     // 有"下载中"条目时每3秒轮询一次数据库
     private final Handler pollHandler = new Handler(Looper.getMainLooper());
@@ -427,6 +443,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 view.findViewById(R.id.add_book).setOnClickListener(this);
                 view.findViewById(R.id.find_book).setOnClickListener(this);
                 view.findViewById(R.id.tv_settings).setOnClickListener(this);
+                view.findViewById(R.id.tv_export).setOnClickListener(this);
+                view.findViewById(R.id.tv_import).setOnClickListener(this);
                 if (popWindow == null) {
                     popWindow = new CustomPopWindow.PopupWindowBuilder(this)
                             .setView(view)
@@ -459,6 +477,16 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 popWindow.dissmiss();
                 break;
 
+
+            case R.id.tv_export:
+                exportBookshelf();
+                popWindow.dissmiss();
+                break;
+
+            case R.id.tv_import:
+                importLauncher.launch("*/*");
+                popWindow.dissmiss();
+                break;
 
             case R.id.tv_share:
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
@@ -577,6 +605,138 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    // ──────────── 导出书架 ────────────
+
+    private void exportBookshelf() {
+        executor.execute(() -> {
+            List<BookList> books = DB.bookList().findAll();
+            String json = new Gson().toJson(books);
+            String filename = "tomato_bookshelf_"
+                    + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date())
+                    + ".json";
+            File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            File out = new File(dir, filename);
+            try (FileWriter w = new FileWriter(out)) {
+                w.write(json);
+                runOnUiThread(() -> Toast.makeText(this,
+                        "已导出到 Downloads/" + filename, Toast.LENGTH_LONG).show());
+            } catch (IOException e) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        "导出失败：" + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    // ──────────── 导入书架 ────────────
+
+    private void importBookshelf(android.net.Uri uri) {
+        executor.execute(() -> {
+            // 读取 JSON
+            String json;
+            try (InputStream is = getContentResolver().openInputStream(uri);
+                 BufferedReader reader = new BufferedReader(
+                         new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                json = sb.toString();
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        "读取文件失败：" + e.getMessage(), Toast.LENGTH_SHORT).show());
+                return;
+            }
+
+            // 解析
+            List<BookList> imported;
+            try {
+                imported = new Gson().fromJson(json,
+                        new TypeToken<List<BookList>>() {}.getType());
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        "文件格式错误", Toast.LENGTH_SHORT).show());
+                return;
+            }
+            if (imported == null || imported.isEmpty()) {
+                runOnUiThread(() -> Toast.makeText(this,
+                        "备份文件中没有书籍", Toast.LENGTH_SHORT).show());
+                return;
+            }
+
+            int added = 0;
+            int skipped = 0;
+            for (BookList book : imported) {
+                if (book.getIsTomato() == 1 && book.getTomatoBookId() != null) {
+                    // 番茄书：未在书架则加入并重新下载
+                    List<BookList> existing = DB.bookList().findByTomatoBookId(book.getTomatoBookId());
+                    if (!existing.isEmpty()) { skipped++; continue; }
+
+                    String outputPath = new File(
+                            com.thl.book.download.NovelDownloadManager.getTomatoDir(this),
+                            book.getBookname().replaceAll("[\\\\/:*?\"<>|]", "_") + ".txt"
+                    ).getAbsolutePath();
+
+                    BookList placeholder = new BookList();
+                    placeholder.setBookname(book.getBookname());
+                    placeholder.setBookpath("");
+                    placeholder.setIsTomato(1);
+                    placeholder.setTomatoBookId(book.getTomatoBookId());
+                    placeholder.setMsg("下载中…");
+                    placeholder.setCoverUrl(book.getCoverUrl());
+                    DB.save(placeholder);
+
+                    final Context appCtx = getApplicationContext();
+                    final String bookId = book.getTomatoBookId();
+                    final String bookName = book.getBookname();
+                    final String coverUrl = book.getCoverUrl();
+                    downloadExecutor.execute(() -> {
+                        com.thl.book.download.NovelDownloadManager mgr =
+                                new com.thl.book.download.NovelDownloadManager(appCtx);
+                        mgr.downloadFull(bookId, bookName, null, coverUrl, outputPath,
+                                new com.thl.book.download.NovelDownloadManager.ProgressCallback() {
+                                    @Override public void onProgress(int d, int t) {}
+                                    @Override public void onComplete() {
+                                        NotifyHelper.send(appCtx, "下载完成",
+                                                "《" + bookName + "》已添加到书架");
+                                        appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                                .putExtra("total_new", 0));
+                                    }
+                                    @Override public void onError(String msg) {
+                                        DB.bookList().updateDownloadResult(
+                                                bookId, bookName, "", "下载失败，点击重试", null, coverUrl);
+                                        NotifyHelper.send(appCtx, "下载失败",
+                                                "《" + bookName + "》" + msg);
+                                        appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                                .putExtra("total_new", 0));
+                                    }
+                                });
+                    });
+                    added++;
+
+                } else if (book.getIsTomato() == 0
+                        && book.getBookpath() != null
+                        && new File(book.getBookpath()).exists()) {
+                    // 本地书：文件存在且未导入过
+                    if (DB.bookList().findByBookpath(book.getBookpath()) != null) {
+                        skipped++;
+                        continue;
+                    }
+                    book.setId(0); // 清除旧 id，让 Room 重新分配
+                    DB.save(book);
+                    added++;
+                } else {
+                    skipped++;
+                }
+            }
+
+            final int finalAdded = added;
+            final int finalSkipped = skipped;
+            sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE).putExtra("total_new", 0));
+            runOnUiThread(() -> Toast.makeText(this,
+                    "导入完成：新增 " + finalAdded + " 本，跳过 " + finalSkipped + " 本",
+                    Toast.LENGTH_SHORT).show());
+        });
     }
 
     private void retryDownload(BookList book) {
