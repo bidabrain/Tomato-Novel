@@ -3,22 +3,22 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@color/white">
+    android:background="@color/bg_activity">
 
-    <!-- Category header row -->
+    <!-- 分类标题行 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingLeft="12dp"
-        android:paddingRight="4dp">
+        android:paddingLeft="16dp"
+        android:paddingRight="8dp">
 
-        <!-- Accent bar -->
+        <!-- 左侧色块 -->
         <View
             android:layout_width="4dp"
-            android:layout_height="18dp"
-            android:layout_marginRight="8dp"
+            android:layout_height="20dp"
+            android:layout_marginRight="10dp"
             android:background="@color/colorPrimary" />
 
         <TextView
@@ -26,34 +26,35 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="#222222"
-            android:textSize="15sp"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
+        <!-- 换一批按钮 -->
         <ImageButton
             android:id="@+id/btn_refresh"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:background="@drawable/bg_item_sel"
             android:contentDescription="换一批"
-            android:padding="8dp"
+            android:padding="6dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_refresh_white"
             android:tint="@color/colorPrimary" />
 
     </LinearLayout>
 
-    <!-- Horizontal book list -->
+    <!-- 横向书单 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_books"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:clipToPadding="false"
-        android:paddingLeft="8dp"
-        android:paddingRight="8dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
         android:paddingBottom="12dp" />
 
-    <!-- Bottom divider / spacing -->
+    <!-- 底部间距 -->
     <View
         android:layout_width="match_parent"
         android:layout_height="8dp"

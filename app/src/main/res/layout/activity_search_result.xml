@@ -5,22 +5,24 @@
     android:background="@color/bg_activity"
     android:orientation="vertical">
 
-    <!-- Title bar -->
+    <!-- 顶部搜索栏区域 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@color/colorPrimary"
+        android:layout_height="56dp"
+        android:background="#FFFFFF"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingLeft="8dp"
-        android:paddingRight="8dp">
+        android:paddingLeft="4dp"
+        android:paddingRight="12dp">
 
         <ImageView
             android:id="@+id/iv_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:padding="8dp"
-            android:src="@drawable/img_back" />
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:contentDescription="返回"
+            android:padding="10dp"
+            android:src="@drawable/img_back"
+            android:tint="@color/text_primary" />
 
         <TextView
             android:id="@+id/tv_title"
@@ -29,10 +31,18 @@
             android:layout_weight="1"
             android:ellipsize="end"
             android:lines="1"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
+            android:textColor="@color/text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
     </LinearLayout>
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#F0E8E4" />
+
+    <!-- 加载中 -->
     <LinearLayout
         android:id="@+id/layout_loading"
         android:layout_width="match_parent"
@@ -44,32 +54,37 @@
 
         <ProgressBar
             android:layout_width="40dp"
-            android:layout_height="40dp" />
+            android:layout_height="40dp"
+            android:indeterminateTint="@color/colorPrimary" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="正在搜索服务器，请耐心等待…"
-            android:textColor="#999999"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp" />
     </LinearLayout>
 
+    <!-- 空结果提示 -->
     <TextView
         android:id="@+id/tv_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:padding="32dp"
+        android:padding="40dp"
         android:text="未找到结果"
-        android:textColor="#999999"
-        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:textSize="15sp"
         android:visibility="gone" />
 
+    <!-- 结果列表 -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp" />
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:clipToPadding="false" />
 
 </LinearLayout>

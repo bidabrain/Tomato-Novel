@@ -61,8 +61,42 @@
                 android:lineSpacingExtra="5dp"
                 android:textColor="#333333"
                 android:autoLink="web"
+                android:textSize="14sp" />
+
+            <!-- 分隔线 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                android:layout_marginTop="24dp"
+                android:background="#F0E8E4" />
+
+            <!-- 更新记录标题 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                android:layout_marginTop="16dp"
+                android:text="更新记录"
+                android:textColor="@color/text_primary"
                 android:textSize="14sp"
-                android:layout_marginBottom="35dp"/>
+                android:textStyle="bold" />
+
+            <!-- commit 列表 -->
+            <TextView
+                android:id="@+id/tv_changelog"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="35dp"
+                android:lineSpacingExtra="6dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:fontFamily="monospace" />
 
         </LinearLayout>
     </ScrollView>

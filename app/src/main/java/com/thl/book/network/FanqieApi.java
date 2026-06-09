@@ -82,6 +82,14 @@ public class FanqieApi {
                         item.summary = raw.get("abstract").getAsString();
                     if (raw.has("serial_count") && !raw.get("serial_count").isJsonNull())
                         item.chapterCount = raw.get("serial_count").getAsInt();
+                    if (raw.has("word_number") && !raw.get("word_number").isJsonNull())
+                        item.wordNumber = raw.get("word_number").getAsLong();
+                    if (raw.has("update_status") && !raw.get("update_status").isJsonNull())
+                        item.updateStatus = raw.get("update_status").getAsInt();
+                    if (raw.has("score") && !raw.get("score").isJsonNull())
+                        item.score = raw.get("score").getAsString();
+                    if (raw.has("category") && !raw.get("category").isJsonNull())
+                        item.category = raw.get("category").getAsString();
                 }
                 result.add(item);
             }

@@ -1,5 +1,25 @@
 apply plugin: 'com.android.application'
 
+// 读取最近 N 条 git commit 作为 changelog
+def getChangelog(int count = 15) {
+    try {
+        def proc = ['git', 'log',
+                    "--pretty=format:• %s (%ad)",
+                    '--date=short',
+                    "-${count}"]
+                .execute(null, rootProject.rootDir)
+        proc.waitFor()
+        def text = proc.text.trim()
+        // 转义为合法 Java 字符串字面量
+        text = text.replace('\\', '\\\\')
+                   .replace('"',  '\\"')
+                   .replace('\n', '\\n')
+        return text ?: "暂无记录"
+    } catch (Exception ignored) {
+        return "暂无记录"
+    }
+}
+
 // 从 local.properties 读取私密配置
 def localProps = new Properties()
 def localPropsFile = rootProject.file("local.properties")
@@ -30,6 +50,7 @@ android {
             buildConfigField "boolean", "LOG_DEBUG", "true"
             buildConfigField "String", "DOWNLOADER_URL",      "\"${localProps['DOWNLOADER_URL'] ?: ''}\""
             buildConfigField "String", "DOWNLOADER_PASSWORD", "\"${localProps['DOWNLOADER_PASSWORD'] ?: ''}\""
+            buildConfigField "String", "CHANGELOG",           "\"${getChangelog()}\""
             debuggable true
             minifyEnabled false
         }
@@ -37,6 +58,7 @@ android {
             buildConfigField "boolean", "LOG_DEBUG", "false"
             buildConfigField "String", "DOWNLOADER_URL",      "\"${localProps['DOWNLOADER_URL'] ?: ''}\""
             buildConfigField "String", "DOWNLOADER_PASSWORD", "\"${localProps['DOWNLOADER_PASSWORD'] ?: ''}\""
+            buildConfigField "String", "CHANGELOG",           "\"${getChangelog()}\""
             debuggable false
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

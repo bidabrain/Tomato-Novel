@@ -5,8 +5,8 @@ ext {
             applicationId    : "com.isayama.tomatoreader",
             minSdkVersion    : 21,
             targetSdkVersion : 34,
-            versionCode      : 19,
-            versionName      : "1.2.2"
+            versionCode      : 20,
+            versionName      : "1.3.0"
     ]
 
     version = [

@@ -15,6 +15,7 @@ import android.provider.Settings;
 import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.text.TextUtils;
@@ -31,11 +32,6 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import com.jiajunhui.xapp.medialoader.MediaLoader;
-import com.jiajunhui.xapp.medialoader.bean.FileItem;
-import com.jiajunhui.xapp.medialoader.bean.FileResult;
-import com.jiajunhui.xapp.medialoader.bean.FileType;
-import com.jiajunhui.xapp.medialoader.callback.OnFileLoaderCallBack;
 import com.lcodecore.tkrefreshlayout.RefreshListenerAdapter;
 import com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout;
 import com.lcodecore.tkrefreshlayout.header.progresslayout.ProgressLayout;
@@ -87,6 +83,13 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private TextView tvTitle;
     private BookStoreFragment bookStoreFragment;
 
+    // "上次读到"卡片
+    private View cardContinueReading;
+    private TextView tvContinueTitle;
+    private TextView tvContinueProgress;
+    private ImageView ivContinueCover;
+    private View rowShelfHeader;
+
     private CustomPopWindow popWindow;
     private boolean isDel = false;
 
@@ -118,6 +121,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     bookLists.clear();
                     bookLists.addAll(books);
                     adapter.notifyDataSetChanged();
+                    updateContinueCard();
                     if (keepPolling) pollHandler.postDelayed(this, 3000);
                 });
             });
@@ -206,6 +210,26 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 setRefreshButtonEnabled(false);
             }
         });
+
+        // "上次读到"卡片
+        cardContinueReading = findViewById(R.id.card_continue_reading);
+        tvContinueTitle = findViewById(R.id.tv_continue_title);
+        tvContinueProgress = findViewById(R.id.tv_continue_progress);
+        ivContinueCover = findViewById(R.id.iv_continue_cover);
+        rowShelfHeader = findViewById(R.id.row_shelf_header);
+
+        cardContinueReading.setOnClickListener(v -> {
+            // 打开最近阅读的书
+            if (bookLists != null && !bookLists.isEmpty()) {
+                BookList lastRead = null;
+                for (BookList b : bookLists) {
+                    if (b.getLastReadAt() > 0) { lastRead = b; break; }
+                }
+                if (lastRead != null && lastRead.getBookpath() != null && !lastRead.getBookpath().isEmpty()) {
+                    ReadActivity.openBook(lastRead, LocalBookshelfActivity.this);
+                }
+            }
+        });
     }
 
     @Override
@@ -220,13 +244,14 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         bookLists.clear();
                         bookLists.addAll(books);
                         adapter.notifyDataSetChanged();
+                        updateContinueCard();
                         refreshLayout.finishRefreshing();
                     });
                 });
             }
         });
 
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
         adapter = new SingleAdapter<BookList>(LocalBookshelfActivity.this, R.layout.item_book) {
             @Override
             protected void bindData(SuperViewHolder holder, BookList book) {
@@ -236,10 +261,12 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     lltDel.setOnClickListener(v -> {
                         executor.execute(() -> {
                             DB.bookList().deleteById(book.getId());
-                            // 同步删除本地 TXT 文件
-                            String path = book.getBookpath();
-                            if (path != null && !path.isEmpty()) {
-                                new File(path).delete();
+                            // 仅删除番茄下载的 TXT 文件，本地导入的书保留源文件
+                            if (book.getIsTomato() == 1) {
+                                String path = book.getBookpath();
+                                if (path != null && !path.isEmpty()) {
+                                    new File(path).delete();
+                                }
                             }
                             List<BookList> books = getBooks();
                             runOnUiThread(() -> {
@@ -247,6 +274,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                                 bookLists.clear();
                                 bookLists.addAll(books);
                                 adapter.notifyDataSetChanged();
+                                updateContinueCard();
                             });
                         });
                     });
@@ -322,60 +350,28 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     }
 
     private void initFirstData() {
-        boolean initFirst = SharedPreferencesUtils.getBoolean(this, "initFristData", true);
-        if (initFirst) {
-            // Mark as done immediately so a crash during scan doesn't cause repeated imports
-            SharedPreferencesUtils.saveBooleanSync(this, "initFristData", false);
-            MediaLoader.getLoader().loadFiles(this, new OnFileLoaderCallBack(FileType.DOC) {
-                @Override
-                public void onResult(FileResult result) {
-                    if (result != null && result.getItems() != null && !result.getItems().isEmpty()) {
-                        List<BookList> toSave = new ArrayList<>();
-                        for (FileItem item : result.getItems()) {
-                            if ("text/plain".equals(item.getMime())) {
-                                BookList bookList = new BookList();
-                                bookList.setBookname(item.getDisplayName());
-                                bookList.setBookpath(item.getPath());
-                                bookList.setIsTomato(0);
-                                toSave.add(bookList);
-                            }
-                        }
-                        executor.execute(() -> {
-                            saveLocalBooks(toSave);
-                            List<BookList> saved = getBooks();
-                            runOnUiThread(() -> {
-                                if (isDestroyed() || isFinishing()) return;
-                                bookLists.clear();
-                                bookLists.addAll(saved);
-                                adapter.notifyDataSetChanged();
-                            });
-                        });
+        executor.execute(() -> {
+            List<BookList> books = getBooks();
+            runOnUiThread(() -> {
+                if (isDestroyed() || isFinishing()) return;
+                bookLists.clear();
+                bookLists.addAll(books);
+                adapter.notifyDataSetChanged();
+                updateContinueCard();
+                // 有下载中条目，启动轮询
+                boolean hasPending = false;
+                for (BookList b : books) {
+                    if (b.getBookpath() == null || b.getBookpath().isEmpty()) {
+                        hasPending = true;
+                        break;
                     }
                 }
+                if (hasPending) {
+                    pollHandler.removeCallbacks(pollRunnable);
+                    pollHandler.postDelayed(pollRunnable, 3000);
+                }
             });
-        } else {
-            executor.execute(() -> {
-                List<BookList> books = getBooks();
-                runOnUiThread(() -> {
-                    if (isDestroyed() || isFinishing()) return;
-                    bookLists.clear();
-                    bookLists.addAll(books);
-                    adapter.notifyDataSetChanged();
-                    // 有下载中条目，启动轮询
-                    boolean hasPending = false;
-                    for (BookList b : books) {
-                        if (b.getBookpath() == null || b.getBookpath().isEmpty()) {
-                            hasPending = true;
-                            break;
-                        }
-                    }
-                    if (hasPending) {
-                        pollHandler.removeCallbacks(pollRunnable);
-                        pollHandler.postDelayed(pollRunnable, 3000);
-                    }
-                });
-            });
-        }
+        });
     }
 
     private void saveLocalBooks(List<BookList> toSave) {
@@ -520,6 +516,36 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     .add(R.id.container_book_store, bookStoreFragment)
                     .commit();
         }
+    }
+
+    /** 根据 bookLists 更新"上次读到"卡片和书架标题行的显隐 */
+    private void updateContinueCard() {
+        if (cardContinueReading == null) return;
+        BookList lastRead = null;
+        for (BookList b : bookLists) {
+            if (b.getLastReadAt() > 0 && b.getBookpath() != null && !b.getBookpath().isEmpty()) {
+                lastRead = b;
+                break;
+            }
+        }
+        if (lastRead != null) {
+            cardContinueReading.setVisibility(View.VISIBLE);
+            tvContinueTitle.setText(lastRead.getBookname());
+            String progress = lastRead.getChapterProgress();
+            tvContinueProgress.setText(progress != null ? progress : "");
+            String coverUrl = lastRead.getCoverUrl();
+            if (coverUrl != null && !coverUrl.isEmpty()) {
+                Glide.with(this).load(coverUrl)
+                        .placeholder(R.mipmap.cover_default_new)
+                        .error(R.mipmap.cover_default_new)
+                        .into(ivContinueCover);
+            } else {
+                ivContinueCover.setImageResource(R.mipmap.cover_default_new);
+            }
+        } else {
+            cardContinueReading.setVisibility(View.GONE);
+        }
+        rowShelfHeader.setVisibility(bookLists.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private void setRefreshButtonEnabled(boolean enabled) {

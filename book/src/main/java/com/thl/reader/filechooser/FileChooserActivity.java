@@ -39,6 +39,10 @@ public class FileChooserActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         toolbar.setNavigationIcon(com.thl.reader.R.drawable.bt_nav_back);
+        if (toolbar.getNavigationIcon() != null) {
+            androidx.core.graphics.drawable.DrawableCompat.setTint(
+                    toolbar.getNavigationIcon(), android.graphics.Color.parseColor("#221C19"));
+        }
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

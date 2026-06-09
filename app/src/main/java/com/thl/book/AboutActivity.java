@@ -37,6 +37,9 @@ public class AboutActivity extends BaseActivity {
                 "无广告，无追踪。\n\n" +
                 "源码：\nhttps://github.com/bidabrain/Tomato-Novel"
         );
+
+        TextView tvChangelog = findViewById(R.id.tv_changelog);
+        tvChangelog.setText(BuildConfig.CHANGELOG.replace("\\n", "\n"));
     }
 
     @Override

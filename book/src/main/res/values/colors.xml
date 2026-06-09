@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorAccent">#72c2ff</color>
+    <color name="colorAccent">#E5492C</color>
     <color name="white">#ffffffff</color>
     <color name="transparent">#00000000</color>
     <color name="dark_gray">#ff999999</color>
@@ -11,7 +11,7 @@
     
     <color name="read_dialog_bg2">#3B3A38</color>
     <color name="read_dialog_bg">#cf3B3A38</color>
-    <color name="read_dialog_button_select">#72c2ff</color>
+    <color name="read_dialog_button_select">#E5492C</color>
 
     <color name="read_bg_default">#CEC29C</color>
     <color name="read_bg_1">#CCEBCC</color>
@@ -27,6 +27,6 @@
     <color name="read_font_4">#627176</color>
     <color name="read_font_5">#000000</color>
 
-    <color name="bg_activity">#e9eff5</color>
+    <color name="bg_activity">#FBF7F4</color>
 
 </resources>

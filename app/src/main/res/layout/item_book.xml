@@ -3,97 +3,93 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginLeft="5dp"
-    android:layout_marginRight="5dp"
+    android:layout_margin="5dp"
     app:cardBackgroundColor="#ffffff"
-    app:cardCornerRadius="2dp"
-    app:cardElevation="3dp"
-    app:cardUseCompatPadding="true">
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardUseCompatPadding="false">
 
-    <LinearLayout
+    <RelativeLayout
         android:id="@+id/bookItemLinearLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="6dp"
-        android:orientation="horizontal">
+        android:layout_height="wrap_content">
 
+        <!-- 封面图 -->
         <ImageView
             android:id="@+id/iv_cover"
-            android:layout_width="72dp"
-            android:layout_height="96dp"
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
             android:scaleType="centerCrop"
             android:src="@mipmap/cover_default_new"
             android:contentDescription="封面" />
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+        <!-- 番茄徽章（覆盖在封面右上角） -->
+        <TextView
+            android:id="@+id/v_tomato_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@id/iv_cover"
+            android:layout_alignParentRight="true"
+            android:layout_margin="4dp"
+            android:background="#E5492C"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="番茄"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:visibility="gone" />
 
-            <LinearLayout
+        <!-- 书名 + 进度 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/iv_cover"
+            android:orientation="vertical"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/tv_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/tv_name"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:lines="1"
-                    android:textColor="#000000"
-                    android:textSize="15sp" />
-
-                <!-- Fanqie badge: only visible for isTomato=1 books -->
-                <TextView
-                    android:id="@+id/v_tomato_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="4dp"
-                    android:background="#FFEB3B"
-                    android:paddingLeft="4dp"
-                    android:paddingRight="4dp"
-                    android:text="番茄"
-                    android:textColor="#E53935"
-                    android:textSize="10sp"
-                    android:visibility="gone" />
-
-            </LinearLayout>
+                android:ellipsize="end"
+                android:lines="1"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tv_msg"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="3dp"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="2dp"
                 android:ellipsize="end"
-                android:lines="4"
-                android:lineSpacingExtra="2dp"
-                android:textColor="#807e7e"
-                android:textSize="12sp" />
-
+                android:lines="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
         </LinearLayout>
 
+        <!-- 删除模式遮罩（覆盖全卡片） -->
         <LinearLayout
             android:id="@+id/llt_del"
-            android:layout_width="50dp"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/bg_item_sel"
+            android:background="#AA000000"
             android:gravity="center"
             android:orientation="vertical"
-            android:visibility="visible">
+            android:visibility="gone">
 
             <View
                 android:id="@+id/ib_del"
-                android:layout_width="25dp"
-                android:layout_height="25dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:background="@mipmap/item_close_button" />
         </LinearLayout>
-    </LinearLayout>
+
+    </RelativeLayout>
 
 </androidx.cardview.widget.CardView>

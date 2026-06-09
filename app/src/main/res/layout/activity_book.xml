@@ -9,13 +9,19 @@
 
     <include layout="@layout/layout_title" />
 
-    <!-- Tab content area (takes all remaining space above bottom nav) -->
+    <!-- 细分隔线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#F0E8E4" />
+
+    <!-- Tab content area -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- Bookshelf tab content -->
+        <!-- 书架 Tab -->
         <LinearLayout
             android:id="@+id/container_bookshelf"
             android:layout_width="match_parent"
@@ -23,26 +29,139 @@
             android:orientation="vertical"
             android:visibility="visible">
 
+            <!-- 搜索栏 -->
             <EditText
                 android:id="@+id/et_search"
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
-                android:layout_marginLeft="12dp"
-                android:layout_marginRight="12dp"
-                android:layout_marginTop="6dp"
+                android:layout_height="44dp"
+                android:layout_marginLeft="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_marginTop="12dp"
                 android:layout_marginBottom="4dp"
                 android:background="@drawable/bg_search"
                 android:drawableLeft="@android:drawable/ic_menu_search"
-                android:drawablePadding="6dp"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/text_hint"
                 android:hint="搜索番茄小说…"
                 android:imeOptions="actionSearch"
                 android:inputType="text"
-                android:paddingLeft="10dp"
-                android:paddingRight="10dp"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
                 android:singleLine="true"
-                android:textColor="#333333"
-                android:textColorHint="#999999"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint"
                 android:textSize="14sp" />
+
+            <!-- 上次读到 卡片（有阅读记录时显示） -->
+            <LinearLayout
+                android:id="@+id/card_continue_reading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp"
+                android:background="@drawable/bg_continue_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="14dp"
+                android:visibility="gone">
+
+                <!-- 文字区 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="上次读到"
+                        android:textColor="#A0826A"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tv_continue_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:lines="1"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_continue_progress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="#A0826A"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- 封面缩略图 -->
+                <ImageView
+                    android:id="@+id/iv_continue_cover"
+                    android:layout_width="56dp"
+                    android:layout_height="74dp"
+                    android:layout_marginLeft="12dp"
+                    android:scaleType="centerCrop"
+                    android:src="@mipmap/cover_default_new"
+                    android:contentDescription="封面" />
+
+                <!-- 继续阅读按钮 -->
+                <LinearLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginLeft="10dp"
+                    android:background="@color/colorPrimary"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▶"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- 我的书架 标题行 -->
+            <LinearLayout
+                android:id="@+id/row_shelf_header"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="我的书架"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_status_badge"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:text="最近阅读"
+                    android:textColor="@color/colorPrimary"
+                    android:textSize="12sp" />
+            </LinearLayout>
 
             <com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout
                 android:id="@+id/refresh"
@@ -53,14 +172,16 @@
                     android:id="@+id/recyclerview"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_marginLeft="5dp"
-                    android:layout_marginRight="5dp" />
+                    android:paddingLeft="8dp"
+                    android:paddingRight="8dp"
+                    android:paddingTop="4dp"
+                    android:clipToPadding="false" />
 
             </com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout>
 
         </LinearLayout>
 
-        <!-- Book store fragment container (shown when book store tab is active) -->
+        <!-- 书城 Tab -->
         <FrameLayout
             android:id="@+id/container_book_store"
             android:layout_width="match_parent"
@@ -69,12 +190,14 @@
 
     </FrameLayout>
 
-    <!-- Bottom Navigation -->
+    <!-- 底部导航 -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
+        app:itemIconTint="@color/nav_color_selector"
+        app:itemTextColor="@color/nav_color_selector"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu" />
 

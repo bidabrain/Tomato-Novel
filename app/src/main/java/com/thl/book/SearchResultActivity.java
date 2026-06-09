@@ -178,6 +178,27 @@ public class SearchResultActivity extends BaseActivity {
             holder.tvName.setText(item.bookName);
             holder.tvAuthor.setText(item.author);
             holder.tvSummary.setText(item.summary);
+
+            // 字数
+            if (item.wordNumber > 0) {
+                String wordStr;
+                if (item.wordNumber >= 10000) {
+                    wordStr = String.format("%.1f万字", item.wordNumber / 10000.0);
+                } else {
+                    wordStr = item.wordNumber + "字";
+                }
+                holder.tvWordCount.setText(wordStr);
+                holder.tvWordCount.setVisibility(android.view.View.VISIBLE);
+            } else {
+                holder.tvWordCount.setVisibility(android.view.View.GONE);
+            }
+
+            // 连载状态
+            if (holder.tvStatus != null) {
+                holder.tvStatus.setText(item.updateStatus == 0 ? "已完结" : "连载中");
+                holder.tvStatus.setVisibility(android.view.View.VISIBLE);
+            }
+
             if (item.coverUrl != null && !item.coverUrl.isEmpty()) {
                 Glide.with(holder.ivCover.getContext())
                         .load(item.coverUrl)
@@ -194,7 +215,7 @@ public class SearchResultActivity extends BaseActivity {
 
         class VH extends RecyclerView.ViewHolder {
             ImageView ivCover;
-            TextView tvName, tvAuthor, tvSummary;
+            TextView tvName, tvAuthor, tvSummary, tvWordCount, tvStatus;
             View btnAdd;
 
             VH(View v) {
@@ -203,6 +224,8 @@ public class SearchResultActivity extends BaseActivity {
                 tvName = v.findViewById(R.id.tv_name);
                 tvAuthor = v.findViewById(R.id.tv_author);
                 tvSummary = v.findViewById(R.id.tv_summary);
+                tvWordCount = v.findViewById(R.id.tv_word_count);
+                tvStatus = v.findViewById(R.id.tv_status);
                 btnAdd = v.findViewById(R.id.btn_add);
             }
         }

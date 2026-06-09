@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#24abff</color>
-    <color name="colorPrimaryDark">#24abff</color>
-    <color name="colorAccent">#24abff</color>
+    <!-- 主色：番茄红 -->
+    <color name="colorPrimary">#E5492C</color>
+    <color name="colorPrimaryDark">#C53E25</color>
+    <color name="colorAccent">#E5492C</color>
 
-    <color name="theme_color">#24abff</color>
+    <color name="theme_color">#E5492C</color>
+    <!-- 浅桃色容器背景 -->
+    <color name="color_container">#FBE6DD</color>
 
-    <color name="bg_activity">#e9eff5</color>
-
-
+    <!-- 全局页面背景：暖白 -->
+    <color name="bg_activity">#FBF7F4</color>
     <color name="white">#ffffff</color>
-    <color name="bg_pass">#c5eaf8</color>
+    <color name="bg_pass">#FBE6DD</color>
 
+    <!-- 文字色 -->
+    <color name="text_primary">#221C19</color>
+    <color name="text_secondary">#6B5A53</color>
+    <color name="text_hint">#A89890</color>
 </resources>

@@ -1,9 +1,13 @@
 package com.thl.book;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -43,6 +47,21 @@ public class BookStoreFragment extends Fragment {
         layoutError = view.findViewById(R.id.layout_error);
 
         view.findViewById(R.id.btn_retry).setOnClickListener(v -> fetchData());
+
+        // 书城搜索栏
+        EditText etStoreSearch = view.findViewById(R.id.et_store_search);
+        etStoreSearch.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                String query = etStoreSearch.getText().toString().trim();
+                if (!TextUtils.isEmpty(query)) {
+                    Intent intent = new Intent(requireContext(), SearchResultActivity.class);
+                    intent.putExtra(SearchResultActivity.EXTRA_QUERY, query);
+                    startActivity(intent);
+                }
+                return true;
+            }
+            return false;
+        });
 
         rvCategories.setLayoutManager(new LinearLayoutManager(requireContext()));
         rvCategories.setHasFixedSize(true);
