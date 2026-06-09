@@ -27,7 +27,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build debug APK (armeabi-v7a + arm64-v8a)
+      - name: Create local.properties
+        run: |
+          echo "DOWNLOADER_URL=${{ secrets.DOWNLOADER_URL }}" >> local.properties
+          echo "DOWNLOADER_PASSWORD=${{ secrets.DOWNLOADER_PASSWORD }}" >> local.properties
+
+      - name: Build debug APK
         run: ./gradlew assembleDebug
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false"
