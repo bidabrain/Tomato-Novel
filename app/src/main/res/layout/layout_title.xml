@@ -60,4 +60,18 @@
         android:visibility="gone"
         android:src="@drawable/img_more"
         android:tint="@color/text_primary" />
+
+    <!-- 电纸书模式开关，仅主书架界面显示 -->
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/sw_eink"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        android:paddingLeft="12dp"
+        android:paddingRight="8dp"
+        android:text="E-ink"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:visibility="gone" />
 </RelativeLayout>

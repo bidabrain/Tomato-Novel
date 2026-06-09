@@ -38,10 +38,13 @@ import com.lcodecore.tkrefreshlayout.header.progresslayout.ProgressLayout;
 import com.thl.book.base.BaseActivity;
 import com.thl.book.base.SingleAdapter;
 import com.thl.book.base.SuperViewHolder;
+import com.thl.reader.Config;
 import com.thl.reader.ReadActivity;
 import com.thl.reader.db.BookList;
 import com.thl.reader.filechooser.FileChooserActivity;
 import com.thl.reader.util.FileUtils;
+
+import androidx.appcompat.widget.SwitchCompat;
 
 import com.thl.reader.db.DB;
 
@@ -82,6 +85,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private FrameLayout containerBookStore;
     private TextView tvTitle;
     private BookStoreFragment bookStoreFragment;
+    private SwitchCompat swEink;
 
     // "上次读到"卡片
     private View cardContinueReading;
@@ -230,6 +234,33 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 }
             }
         });
+
+        // 电纸书模式开关
+        swEink = findViewById(R.id.sw_eink);
+        swEink.setVisibility(View.VISIBLE);
+        Config config = Config.createConfig(this);
+        swEink.setChecked(config.isEinkMode());
+        applyEinkMode(config.isEinkMode());
+        swEink.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            config.setEinkMode(isChecked);
+            applyEinkMode(isChecked);
+            if (bookStoreFragment != null) {
+                bookStoreFragment.onEinkModeChanged();
+            }
+        });
+    }
+
+    private void applyEinkMode(boolean eink) {
+        // 整体背景
+        View root = findViewById(R.id.activity_album);
+        if (root != null) {
+            root.setBackgroundColor(eink ? 0xFFFFFFFF : getResources().getColor(R.color.bg_activity));
+        }
+        // 上次读到卡片样式
+        if (cardContinueReading != null) {
+            cardContinueReading.setBackgroundResource(
+                    eink ? R.drawable.bg_continue_card_eink : R.drawable.bg_continue_card);
+        }
     }
 
     @Override
@@ -487,7 +518,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             case R.id.tv_share:
                 Intent shareIntent = new Intent(Intent.ACTION_SEND);
                 shareIntent.setType("text/plain");
-                shareIntent.putExtra(Intent.EXTRA_TEXT, "推荐一个小说阅读器：Tomato Reader");
+                shareIntent.putExtra(Intent.EXTRA_TEXT, "推荐一个小说阅读器：Tomato Reader\nhttps://github.com/bidabrain/Tomato-Novel");
                 shareIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(shareIntent);
                 popWindow.dissmiss();

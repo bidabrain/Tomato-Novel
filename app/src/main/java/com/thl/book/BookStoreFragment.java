@@ -25,6 +25,7 @@ import com.bumptech.glide.Glide;
 import com.thl.book.network.BookStoreApi;
 import com.thl.book.network.dto.RankBook;
 import com.thl.book.network.dto.RankCategory;
+import com.thl.reader.Config;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -84,6 +85,10 @@ public class BookStoreFragment extends Fragment {
             }
             return false;
         });
+
+        // 初始化时同步 eink 背景
+        boolean eink = Config.createConfig(requireContext()).isEinkMode();
+        view.setBackgroundColor(eink ? 0xFFFFFFFF : getResources().getColor(R.color.bg_activity));
 
         if (RankDataCache.hasData()) {
             showCategories(RankDataCache.getCategories());
@@ -180,15 +185,25 @@ public class BookStoreFragment extends Fragment {
     }
 
     private void applyChipStyle(TextView chip, boolean selected) {
+        boolean eink = Config.createConfig(requireContext()).isEinkMode();
         if (selected) {
-            chip.setBackgroundResource(R.drawable.bg_chip_selected);
+            chip.setBackgroundResource(eink ? R.drawable.bg_chip_selected_eink : R.drawable.bg_chip_selected);
             chip.setTextColor(0xFFFFFFFF);
             chip.setTypeface(null, Typeface.BOLD);
         } else {
             chip.setBackgroundResource(R.drawable.bg_chip);
-            chip.setTextColor(0xFF221C19);
+            chip.setTextColor(eink ? 0xFF000000 : 0xFF221C19);
             chip.setTypeface(null, Typeface.NORMAL);
         }
+    }
+
+    /** 电纸书模式切换时由 LocalBookshelfActivity 调用 */
+    public void onEinkModeChanged() {
+        if (getView() == null) return;
+        boolean eink = Config.createConfig(requireContext()).isEinkMode();
+        getView().setBackgroundColor(eink ? 0xFFFFFFFF
+                : getResources().getColor(R.color.bg_activity));
+        if (categories != null) buildChips();
     }
 
     private void showBooksForIndex(int index) {
