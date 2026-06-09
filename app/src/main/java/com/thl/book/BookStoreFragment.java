@@ -20,6 +20,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.Glide;
 import com.thl.book.network.BookStoreApi;
@@ -34,6 +35,7 @@ import java.util.concurrent.Executors;
 public class BookStoreFragment extends Fragment {
 
     private RecyclerView rvBooks;
+    private SwipeRefreshLayout swipeRefresh;
     private View progressLoading;
     private View layoutError;
     private HorizontalScrollView scrollChips;
@@ -57,6 +59,7 @@ public class BookStoreFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         rvBooks = view.findViewById(R.id.rv_books);
+        swipeRefresh = view.findViewById(R.id.swipe_refresh);
         progressLoading = view.findViewById(R.id.progress_loading);
         layoutError = view.findViewById(R.id.layout_error);
         scrollChips = view.findViewById(R.id.scroll_chips);
@@ -70,6 +73,19 @@ public class BookStoreFragment extends Fragment {
                 BookDetailActivity.start(requireActivity(),
                         book.title, book.author, book.reads, book.intro, book.cover));
         rvBooks.setAdapter(gridAdapter);
+
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
+        swipeRefresh.setOnRefreshListener(() -> {
+            if (categories != null) {
+                for (com.thl.book.network.dto.RankCategory cat : categories) {
+                    RankDataCache.randomizeCategory(cat);
+                }
+                showBooksForIndex(selectedIndex);
+                swipeRefresh.setRefreshing(false);
+            } else {
+                fetchData();
+            }
+        });
 
         // 书城搜索栏
         EditText etStoreSearch = view.findViewById(R.id.et_store_search);
@@ -140,7 +156,7 @@ public class BookStoreFragment extends Fragment {
 
         progressLoading.setVisibility(View.GONE);
         layoutError.setVisibility(View.GONE);
-        rvBooks.setVisibility(View.VISIBLE);
+        swipeRefresh.setVisibility(View.VISIBLE);
         scrollChips.setVisibility(View.VISIBLE);
 
         buildChips();
@@ -216,7 +232,7 @@ public class BookStoreFragment extends Fragment {
         if (getView() == null) return;
         progressLoading.setVisibility(View.VISIBLE);
         layoutError.setVisibility(View.GONE);
-        rvBooks.setVisibility(View.GONE);
+        swipeRefresh.setVisibility(View.GONE);
         scrollChips.setVisibility(View.GONE);
     }
 
@@ -224,7 +240,7 @@ public class BookStoreFragment extends Fragment {
         if (getView() == null) return;
         progressLoading.setVisibility(View.GONE);
         layoutError.setVisibility(View.VISIBLE);
-        rvBooks.setVisibility(View.GONE);
+        swipeRefresh.setVisibility(View.GONE);
         scrollChips.setVisibility(View.GONE);
     }
 

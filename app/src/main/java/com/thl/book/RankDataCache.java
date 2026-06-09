@@ -14,7 +14,7 @@ import java.util.Random;
  */
 public class RankDataCache {
 
-    private static final int DISPLAY_COUNT = 10;
+    private static final int DISPLAY_COUNT = 12;
     private static final Random RANDOM = new Random();
 
     private static List<RankCategory> sCategories = null;
