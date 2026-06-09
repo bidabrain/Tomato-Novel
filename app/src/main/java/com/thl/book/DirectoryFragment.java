@@ -450,6 +450,7 @@ public class DirectoryFragment extends Fragment implements View.OnClickListener 
             }
             try {
                 DB.bookList().insertAll(bookLists);
+                WebDavConfig.markBookshelfModified(requireContext());
             } catch (Exception e) {
                 e.printStackTrace();
                 return FAIL;
@@ -709,7 +710,11 @@ public class DirectoryFragment extends Fragment implements View.OnClickListener 
                 }
 
                 if (!isSave) {
-                    new Thread(() -> DB.save(bookList)).start();
+                    final android.content.Context ctx = requireContext();
+                    new Thread(() -> {
+                        DB.save(bookList);
+                        WebDavConfig.markBookshelfModified(ctx);
+                    }).start();
                 }
                 ReadActivity.openBook(bookList, getActivity());
             }

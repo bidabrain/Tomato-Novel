@@ -12,11 +12,16 @@ public class SettingsActivity extends BaseActivity {
 
     private Switch switchDownloader;
     private Switch switchStore;
+    private Switch switchWebDav;
     private View groupDownloader;
     private View groupStore;
+    private View groupWebDav;
     private EditText etDownloaderUrl;
     private EditText etDownloaderPassword;
     private EditText etStoreUrl;
+    private EditText etWebDavUrl;
+    private EditText etWebDavUsername;
+    private EditText etWebDavPassword;
 
     @Override
     protected int initLayout() {
@@ -29,30 +34,45 @@ public class SettingsActivity extends BaseActivity {
 
         switchDownloader = findViewById(R.id.switch_downloader);
         switchStore      = findViewById(R.id.switch_store);
+        switchWebDav     = findViewById(R.id.switch_webdav);
         groupDownloader  = findViewById(R.id.group_downloader);
         groupStore       = findViewById(R.id.group_store);
+        groupWebDav      = findViewById(R.id.group_webdav);
         etDownloaderUrl      = findViewById(R.id.et_downloader_url);
         etDownloaderPassword = findViewById(R.id.et_downloader_password);
         etStoreUrl           = findViewById(R.id.et_store_url);
+        etWebDavUrl      = findViewById(R.id.et_webdav_url);
+        etWebDavUsername = findViewById(R.id.et_webdav_username);
+        etWebDavPassword = findViewById(R.id.et_webdav_password);
 
         // Restore saved state
         switchDownloader.setChecked(ServerConfig.isCustomDownloaderEnabled(this));
         switchStore.setChecked(ServerConfig.isCustomStoreEnabled(this));
+        switchWebDav.setChecked(WebDavConfig.isEnabled(this));
         etDownloaderUrl.setText(
                 SharedPreferencesUtils.getString(this, ServerConfig.KEY_CUSTOM_DOWNLOADER_URL, ""));
         etDownloaderPassword.setText(
                 SharedPreferencesUtils.getString(this, ServerConfig.KEY_CUSTOM_DOWNLOADER_PASSWORD, ""));
         etStoreUrl.setText(
                 SharedPreferencesUtils.getString(this, ServerConfig.KEY_CUSTOM_STORE_URL, ""));
+        etWebDavUrl.setText(
+                SharedPreferencesUtils.getString(this, WebDavConfig.KEY_WEBDAV_URL, ""));
+        etWebDavUsername.setText(
+                SharedPreferencesUtils.getString(this, WebDavConfig.KEY_WEBDAV_USERNAME, ""));
+        etWebDavPassword.setText(
+                SharedPreferencesUtils.getString(this, WebDavConfig.KEY_WEBDAV_PASSWORD, ""));
 
         // Apply initial enabled state to input groups
         setGroupEnabled(groupDownloader, switchDownloader.isChecked());
         setGroupEnabled(groupStore, switchStore.isChecked());
+        setGroupEnabled(groupWebDav, switchWebDav.isChecked());
 
         switchDownloader.setOnCheckedChangeListener((btn, checked) ->
                 setGroupEnabled(groupDownloader, checked));
         switchStore.setOnCheckedChangeListener((btn, checked) ->
                 setGroupEnabled(groupStore, checked));
+        switchWebDav.setOnCheckedChangeListener((btn, checked) ->
+                setGroupEnabled(groupWebDav, checked));
 
         findViewById(R.id.btn_save).setOnClickListener(v -> save());
     }
@@ -75,6 +95,18 @@ public class SettingsActivity extends BaseActivity {
         SharedPreferencesUtils.saveString(this,
                 ServerConfig.KEY_CUSTOM_STORE_URL,
                 etStoreUrl.getText().toString().trim());
+
+        SharedPreferencesUtils.saveBoolean(this,
+                WebDavConfig.KEY_WEBDAV_ENABLED, switchWebDav.isChecked());
+        SharedPreferencesUtils.saveString(this,
+                WebDavConfig.KEY_WEBDAV_URL,
+                etWebDavUrl.getText().toString().trim());
+        SharedPreferencesUtils.saveString(this,
+                WebDavConfig.KEY_WEBDAV_USERNAME,
+                etWebDavUsername.getText().toString().trim());
+        SharedPreferencesUtils.saveString(this,
+                WebDavConfig.KEY_WEBDAV_PASSWORD,
+                etWebDavPassword.getText().toString());
 
         // Invalidate book store cache so next visit re-fetches from the new URL
         RankDataCache.invalidate();

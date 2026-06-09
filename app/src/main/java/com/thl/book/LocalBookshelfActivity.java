@@ -294,6 +294,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     lltDel.setOnClickListener(v -> {
                         executor.execute(() -> {
                             DB.bookList().deleteById(book.getId());
+                            WebDavConfig.markBookshelfModified(LocalBookshelfActivity.this);
                             // 仅删除番茄下载的 TXT 文件，本地导入的书保留源文件
                             if (book.getIsTomato() == 1) {
                                 String path = book.getBookpath();
@@ -449,6 +450,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 Log.e("Bookshelf", "msg read failed", e);
             }
             DB.save(bookList);
+            WebDavConfig.markBookshelfModified(this);
         }
     }
 
@@ -495,6 +497,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 view.findViewById(R.id.tv_settings).setOnClickListener(this);
                 view.findViewById(R.id.tv_export).setOnClickListener(this);
                 view.findViewById(R.id.tv_import).setOnClickListener(this);
+                view.findViewById(R.id.tv_webdav_sync).setOnClickListener(this);
                 if (popWindow == null) {
                     popWindow = new CustomPopWindow.PopupWindowBuilder(this)
                             .setView(view)
@@ -527,6 +530,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 popWindow.dissmiss();
                 break;
 
+
+            case R.id.tv_webdav_sync:
+                syncWebDav();
+                popWindow.dissmiss();
+                break;
 
             case R.id.tv_export:
                 exportBookshelf();
@@ -687,6 +695,31 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         return super.onKeyDown(keyCode, event);
     }
 
+    // ──────────── WebDAV 同步 ────────────
+
+    private void syncWebDav() {
+        if (!WebDavConfig.isEnabled(this)) {
+            Toast.makeText(this, "请先在「服务器设置」中开启并配置 WebDAV", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Toast.makeText(this, "正在同步…", Toast.LENGTH_SHORT).show();
+        executor.execute(() -> WebDavSyncManager.sync(this, new WebDavSyncManager.SyncCallback() {
+            @Override
+            public void onSuccess(String message) {
+                runOnUiThread(() -> {
+                    Toast.makeText(LocalBookshelfActivity.this, message, Toast.LENGTH_LONG).show();
+                    initFirstData();
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() ->
+                        Toast.makeText(LocalBookshelfActivity.this, error, Toast.LENGTH_LONG).show());
+            }
+        }));
+    }
+
     // ──────────── 导出书架 ────────────
 
     private void exportBookshelf() {
@@ -812,6 +845,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
             final int finalAdded = added;
             final int finalSkipped = skipped;
+            if (finalAdded > 0) WebDavConfig.markBookshelfModified(this);
             sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE).putExtra("total_new", 0));
             runOnUiThread(() -> Toast.makeText(this,
                     "导入完成：新增 " + finalAdded + " 本，跳过 " + finalSkipped + " 本",

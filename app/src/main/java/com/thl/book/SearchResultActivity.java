@@ -121,6 +121,7 @@ public class SearchResultActivity extends BaseActivity {
                 placeholder.setMsg("下载中…");
                 placeholder.setCoverUrl(item.coverUrl);
                 DB.save(placeholder);
+                WebDavConfig.markBookshelfModified(appCtx);
             } else {
                 // 已有失败占位，重置状态
                 DB.bookList().updateDownloadResult(item.bookId, item.bookName, "", "下载中…", null, item.coverUrl);
