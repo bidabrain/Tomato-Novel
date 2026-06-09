@@ -115,7 +115,7 @@ public class SettingsActivity extends BaseActivity {
         finish();
     }
 
-    /** Grey out / re-enable all child EditTexts inside a group layout. */
+    /** Grey out / re-enable all child views inside a group layout. */
     private void setGroupEnabled(View group, boolean enabled) {
         group.setAlpha(enabled ? 1f : 0.4f);
         if (group instanceof android.view.ViewGroup) {
@@ -124,6 +124,7 @@ public class SettingsActivity extends BaseActivity {
                 View child = vg.getChildAt(i);
                 child.setEnabled(enabled);
                 child.setFocusable(enabled);
+                child.setFocusableInTouchMode(enabled);
             }
         }
     }

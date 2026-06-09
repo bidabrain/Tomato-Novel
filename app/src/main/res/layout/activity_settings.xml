@@ -103,9 +103,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
+                    android:background="#FFFFFF"
                     android:hint="https://your-downloader-server.example.com"
                     android:inputType="textUri"
-                    android:singleLine="true" />
+                    android:padding="8dp"
+                    android:singleLine="true"
+                    android:textColor="#111111"
+                    android:textColorHint="#AAAAAA" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -120,9 +124,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
+                    android:background="#FFFFFF"
                     android:hint="留空表示无密码"
                     android:inputType="textPassword"
-                    android:singleLine="true" />
+                    android:padding="8dp"
+                    android:singleLine="true"
+                    android:textColor="#111111"
+                    android:textColorHint="#AAAAAA" />
 
             </LinearLayout>
 
@@ -186,9 +194,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
+                    android:background="#FFFFFF"
                     android:hint="https://username.github.io/FanqieRankTracker/data/latest_ranks.json"
                     android:inputType="textUri"
-                    android:singleLine="true" />
+                    android:padding="8dp"
+                    android:singleLine="true"
+                    android:textColor="#111111"
+                    android:textColorHint="#AAAAAA" />
 
             </LinearLayout>
 
@@ -252,9 +264,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
+                    android:background="#FFFFFF"
                     android:hint="https://your-webdav-server.example.com/dav/"
                     android:inputType="textUri"
-                    android:singleLine="true" />
+                    android:padding="8dp"
+                    android:singleLine="true"
+                    android:textColor="#111111"
+                    android:textColorHint="#AAAAAA" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -269,9 +285,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
+                    android:background="#FFFFFF"
                     android:hint="用户名"
                     android:inputType="text"
-                    android:singleLine="true" />
+                    android:padding="8dp"
+                    android:singleLine="true"
+                    android:textColor="#111111"
+                    android:textColorHint="#AAAAAA" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -286,9 +306,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
+                    android:background="#FFFFFF"
                     android:hint="密码"
                     android:inputType="textPassword"
-                    android:singleLine="true" />
+                    android:padding="8dp"
+                    android:singleLine="true"
+                    android:textColor="#111111"
+                    android:textColorHint="#AAAAAA" />
 
             </LinearLayout>
 
