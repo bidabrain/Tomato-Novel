@@ -335,10 +335,10 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
                 tvName.setText(book.getBookname());
 
-                // 精确提取番茄专用格式"（新+X章）"作为更新 badge，避免本地书内容误触发
+                // 精确提取番茄专用格式"（新+X）"作为更新 badge，避免本地书内容误触发
                 String rawMsg = book.getMsg() != null ? book.getMsg() : "";
                 java.util.regex.Matcher badgeMatcher =
-                        java.util.regex.Pattern.compile("（新\\+\\d+章）").matcher(rawMsg);
+                        java.util.regex.Pattern.compile("（新\\+\\d+）").matcher(rawMsg);
                 String updateText = badgeMatcher.find() ? badgeMatcher.group() : "";
 
                 // 进度：优先用 chapterProgress；本地书无进度时不显示摘要内容
@@ -347,7 +347,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     progressText = book.getChapterProgress();
                 } else if (book.getIsTomato() == 1 && updateText.isEmpty()) {
                     // 番茄书尚无进度且无更新信息时，显示 msg（如"下载中…"等状态文字）
-                    progressText = rawMsg.replaceAll("（新\\+\\d+章）", "").trim();
+                    progressText = rawMsg.replaceAll("（新\\+\\d+）", "").trim();
                 }
                 tvMsg.setText(progressText);
 
