@@ -41,3 +41,6 @@ captures/
 
 # MacOS
 .DS_Store
+
+# ProGuard/R8 mapping files
+priguardMapping.txt
