@@ -23,7 +23,7 @@ public class ServerConfig {
     // ── Default book store URL (GitHub Pages) ────────────────────────────────
 
     public static final String DEFAULT_STORE_URL =
-            "https://bidabrain.github.io/FanqieRankTracker/data/latest_ranks.json";
+            "https://bidabrain.github.io/FanqieRankTracker/api/lastest/all.json";
 
     // ── Downloader ────────────────────────────────────────────────────────────
 
