@@ -35,7 +35,6 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
     CircleImageView iv_bg4;
     CircleImageView iv_bg5;
     TextView tv_size_default;
-    TextView tv_eink;
 
     private Config config;
     private Boolean isSystem;
@@ -77,8 +76,6 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         iv_bg4 = (CircleImageView) findViewById(com.thl.reader.R.id.iv_bg_4);
         iv_bg5 = (CircleImageView) findViewById(com.thl.reader.R.id.iv_bg_5);
         tv_size_default = (TextView) findViewById(com.thl.reader.R.id.tv_size_default);
-        tv_eink = (TextView) findViewById(com.thl.reader.R.id.tv_eink);
-
 
         findViewById(com.thl.reader.R.id.tv_dark).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.tv_bright).setOnClickListener(this);
@@ -92,7 +89,6 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         findViewById(com.thl.reader.R.id.iv_bg_3).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.iv_bg_4).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.iv_bg_5).setOnClickListener(this);
-        findViewById(com.thl.reader.R.id.tv_eink).setOnClickListener(this);
 
         WindowManager m = getWindow().getWindowManager();
         Display d = m.getDefaultDisplay();
@@ -117,9 +113,18 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         //初始化字体
         selectBg(config.getBookBgType());
 
-        //初始化墨水屏模式
-        setTextViewSelect(tv_eink, config.isEinkMode());
-        tv_eink.setText(config.isEinkMode() ? "开启" : "关闭");
+        // 墨水屏模式开启时：锁定背景选择，显示提示
+        if (config.isEinkMode()) {
+            float dim = 0.35f;
+            iv_bg_default.setAlpha(dim); iv_bg_default.setClickable(false);
+            iv_bg1.setAlpha(dim); iv_bg1.setClickable(false);
+            iv_bg2.setAlpha(dim); iv_bg2.setClickable(false);
+            iv_bg3.setAlpha(dim); iv_bg3.setClickable(false);
+            iv_bg4.setAlpha(dim); iv_bg4.setClickable(false);
+            iv_bg5.setAlpha(dim); iv_bg5.setClickable(false);
+            View notice = findViewById(com.thl.reader.R.id.tv_eink_lock_notice);
+            if (notice != null) notice.setVisibility(View.VISIBLE);
+        }
 
         sb_brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -273,15 +278,6 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         } else if (i == com.thl.reader.R.id.iv_bg_5) {
             setBookBg(Config.BOOK_BG_5);
             selectBg(Config.BOOK_BG_5);
-
-        } else if (i == com.thl.reader.R.id.tv_eink) {
-            boolean isEink = !config.isEinkMode();
-            config.setEinkMode(isEink);
-            setTextViewSelect(tv_eink, isEink);
-            tv_eink.setText(isEink ? "开启" : "关闭");
-            if (mSettingListener != null) {
-                mSettingListener.changeEinkMode(isEink);
-            }
         }
     }
 
@@ -341,8 +337,6 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         void changeTypeFace(Typeface typeface);
 
         void changeBookBg(int type);
-
-        void changeEinkMode(boolean isEink);
     }
 
 }

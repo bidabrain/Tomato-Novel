@@ -138,23 +138,17 @@
             android:src="@color/read_bg_5" />
     </LinearLayout>
 
-    <LinearLayout
+    <!-- 墨水屏模式锁定提示（主界面开启时显示） -->
+    <TextView
+        android:id="@+id/tv_eink_lock_notice"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/setting_height"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_height="wrap_content"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="墨水屏模式已开启，背景/翻页/夜间已锁定"
+        android:textColor="#FFAA44"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:visibility="gone" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="墨水屏模式"
-            android:textColor="@color/white"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/tv_eink"
-            style="@style/setting_dialog_button"
-            android:text="关闭" />
-    </LinearLayout>
 </LinearLayout>

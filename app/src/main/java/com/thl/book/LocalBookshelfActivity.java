@@ -242,6 +242,18 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         swEink.setChecked(config.isEinkMode());
         applyEinkMode(config.isEinkMode());
         swEink.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                // 保存开启前的阅读设置
+                config.setPreEinkPageMode(config.getPageMode());
+                config.setPreEinkBookBg(config.getBookBgType());
+                // 强制为墨水屏设置
+                config.setPageMode(com.thl.reader.Config.PAGE_MODE_NONE);
+                config.setBookBg(com.thl.reader.Config.BOOK_BG_5);
+            } else {
+                // 恢复原阅读设置
+                config.setPageMode(config.getPreEinkPageMode());
+                config.setBookBg(config.getPreEinkBookBg());
+            }
             config.setEinkMode(isChecked);
             applyEinkMode(isChecked);
             if (bookStoreFragment != null) {

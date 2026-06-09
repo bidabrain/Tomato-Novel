@@ -14,6 +14,9 @@ public class Config {
     private final static String SYSTEM_LIGHT_KEY = "systemlight";
     private final static String PAGE_MODE_KEY = "pagemode";
     private final static String EINK_KEY = "eink";
+    // 开启墨水屏前保存的原始设置，用于关闭时恢复
+    private final static String PRE_EINK_PAGE_MODE_KEY = "pre_eink_page_mode";
+    private final static String PRE_EINK_BOOK_BG_KEY = "pre_eink_book_bg";
 
     public final static String FONTTYPE_DEFAULT = "";
 
@@ -72,6 +75,22 @@ public class Config {
 
     public void setEinkMode(boolean isEink) {
         sp.edit().putBoolean(EINK_KEY, isEink).commit();
+    }
+
+    public int getPreEinkPageMode() {
+        return sp.getInt(PRE_EINK_PAGE_MODE_KEY, PAGE_MODE_SIMULATION);
+    }
+
+    public void setPreEinkPageMode(int mode) {
+        sp.edit().putInt(PRE_EINK_PAGE_MODE_KEY, mode).commit();
+    }
+
+    public int getPreEinkBookBg() {
+        return sp.getInt(PRE_EINK_BOOK_BG_KEY, BOOK_BG_DEFAULT);
+    }
+
+    public void setPreEinkBookBg(int bg) {
+        sp.edit().putInt(PRE_EINK_BOOK_BG_KEY, bg).commit();
     }
 
     public int getBookBgType() {

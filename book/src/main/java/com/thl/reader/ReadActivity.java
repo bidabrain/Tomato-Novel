@@ -176,6 +176,12 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             Toast.makeText(this, "打开电子书失败", Toast.LENGTH_SHORT).show();
         }
         initDayOrNight();
+
+        // 主界面已开启墨水屏模式：强制应用白底无动画设置
+        if (config.isEinkMode()) {
+            bookpage.setPageMode(Config.PAGE_MODE_NONE);
+            pageFactory.changeBookBg(Config.BOOK_BG_5);
+        }
     }
 
     @Override
@@ -256,20 +262,6 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             @Override
             public void changeBookBg(int type) {
                 pageFactory.changeBookBg(type);
-            }
-
-            @Override
-            public void changeEinkMode(boolean isEink) {
-                if (isEink) {
-                    // 墨水屏模式：无动画翻页 + 纯白背景 + 取消常亮
-                    bookpage.setPageMode(Config.PAGE_MODE_NONE);
-                    config.setPageMode(Config.PAGE_MODE_NONE);
-                    pageFactory.changeBookBg(Config.BOOK_BG_5);
-                    config.setBookBg(Config.BOOK_BG_5);
-                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                } else {
-                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                }
             }
         });
 
@@ -563,11 +555,19 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             startActivity(intent);
 
         } else if (i == R.id.tv_dayornight) {
-            changeDayOrNight();
+            if (config.isEinkMode()) {
+                Toast.makeText(this, "墨水屏模式已开启，夜间模式已锁定", Toast.LENGTH_SHORT).show();
+            } else {
+                changeDayOrNight();
+            }
 
         } else if (i == R.id.tv_pagemode) {
-            hideReadSetting();
-            mPageModeDialog.show();
+            if (config.isEinkMode()) {
+                Toast.makeText(this, "墨水屏模式已开启，翻页模式已锁定", Toast.LENGTH_SHORT).show();
+            } else {
+                hideReadSetting();
+                mPageModeDialog.show();
+            }
 
         } else if (i == R.id.tv_setting) {
             hideReadSetting();
