@@ -177,10 +177,10 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         }
         initDayOrNight();
 
-        // 主界面已开启墨水屏模式：强制应用白底无动画设置
+        // 主界面已开启墨水屏模式：openBook() 完成后再应用，避免 PageWidget 初始化前调用崩溃
         if (config.isEinkMode()) {
             bookpage.setPageMode(Config.PAGE_MODE_NONE);
-            pageFactory.changeBookBg(Config.BOOK_BG_5);
+            bookpage.post(() -> pageFactory.changeBookBg(Config.BOOK_BG_5));
         }
     }
 
