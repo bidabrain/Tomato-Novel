@@ -59,6 +59,7 @@ android {
             buildConfigField "String", "DOWNLOADER_URL",      "\"${localProps['DOWNLOADER_URL'] ?: ''}\""
             buildConfigField "String", "DOWNLOADER_PASSWORD", "\"${localProps['DOWNLOADER_PASSWORD'] ?: ''}\""
             buildConfigField "String", "CHANGELOG",           "\"${getChangelog()}\""
+            signingConfig signingConfigs.debug   // 复用 debug keystore，自用场景无需额外配置
             debuggable false
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
