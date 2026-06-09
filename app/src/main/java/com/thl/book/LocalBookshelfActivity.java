@@ -319,6 +319,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 TextView tvName = holder.getView(R.id.tv_name);
                 TextView tvMsg = holder.getView(R.id.tv_msg);
                 View tomatoBadge = holder.getView(R.id.v_tomato_badge);
+                TextView tvUpdateBadge = holder.getView(R.id.tv_update_badge);
+                TextView tvDownloading = holder.getView(R.id.tv_downloading);
 
                 String coverUrl = book.getCoverUrl();
                 if (coverUrl != null && !coverUrl.isEmpty()) {
@@ -332,17 +334,34 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 }
 
                 tvName.setText(book.getBookname());
-                String displayMsg = book.getMsg() != null ? book.getMsg() : "";
-                if (book.getChapterProgress() != null) {
-                    displayMsg = displayMsg.isEmpty()
-                            ? book.getChapterProgress()
-                            : displayMsg + "\n" + book.getChapterProgress();
+
+                // 分离"新+X章"更新信息和阅读进度
+                String rawMsg = book.getMsg() != null ? book.getMsg() : "";
+                String updateText = "";
+                String progressText = "";
+                if (rawMsg.contains("新+")) {
+                    updateText = rawMsg;  // 例如"（新+3章）"
+                } else {
+                    progressText = rawMsg;
                 }
-                tvMsg.setText(displayMsg);
+                if (book.getChapterProgress() != null) {
+                    progressText = book.getChapterProgress();
+                }
+                tvMsg.setText(progressText);
+
+                // 更新 badge
+                if (!updateText.isEmpty()) {
+                    tvUpdateBadge.setText(updateText);
+                    tvUpdateBadge.setVisibility(View.VISIBLE);
+                } else {
+                    tvUpdateBadge.setVisibility(View.GONE);
+                }
+
                 tomatoBadge.setVisibility(book.getIsTomato() == 1 ? View.VISIBLE : View.GONE);
 
                 boolean isDownloading = book.getBookpath() == null || book.getBookpath().isEmpty();
-                holder.getRootView().setAlpha(isDownloading ? 0.45f : 1f);
+                holder.getRootView().setAlpha(1f);
+                tvDownloading.setVisibility(isDownloading ? View.VISIBLE : View.GONE);
                 if (isDownloading) {
                     holder.getRootView().setOnClickListener(v -> retryDownload(book));
                 } else {
