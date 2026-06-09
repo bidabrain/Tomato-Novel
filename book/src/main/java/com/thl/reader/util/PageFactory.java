@@ -709,7 +709,9 @@ public class PageFactory {
     //改变背景
     public void changeBookBg(int type){
         setBookBg(type);
-        currentPage(false);
+        if (currentPage != null) {
+            currentPage(false);
+        }
     }
 
     //设置页面的背景
