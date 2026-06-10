@@ -40,6 +40,8 @@ public class TtsManager {
         void onPageSync(long absPosition);
         /** 引擎切换完成（isEdge=true 代表当前是 Edge TTS） */
         void onEngineChanged(boolean isEdge);
+        /** Edge TTS 连接失败，已自动回退到系统 TTS */
+        void onEdgeTtsFallback();
     }
 
     public TtsManager(Context context, PageFactory pageFactory, TtsListener listener) {
@@ -56,7 +58,25 @@ public class TtsManager {
             mainHandler.post(() -> { if (listener != null) listener.onInitSuccess(); });
         }
         @Override public void onFail() {
-            mainHandler.post(() -> { if (listener != null) listener.onInitFail(); });
+            mainHandler.post(() -> {
+                if (listener != null) listener.onInitFail();
+                // Edge TTS 连接失败，自动回退到系统 TTS
+                if (engine instanceof EdgeTtsEngine) {
+                    boolean wasPlaying = isPlaying;
+                    isPlaying = false;
+                    Config.getInstance().setEdgeTts(false);
+                    initEngine(false);
+                    if (listener != null) {
+                        listener.onEngineChanged(false);
+                        listener.onEdgeTtsFallback();
+                    }
+                    if (wasPlaying) {
+                        mainHandler.postDelayed(() -> {
+                            if (engine.isReady()) play();
+                        }, 300);
+                    }
+                }
+            });
         }
         @Override public void onUtteranceStart(String utteranceId) {
             if (utteranceId.startsWith(CHUNK_PREFIX)) {
@@ -190,7 +210,12 @@ public class TtsManager {
     }
 
     public void resume() {
-        if (!engine.isReady() || isPlaying || textChunks.isEmpty()) return;
+        if (!engine.isReady() || isPlaying) return;
+        // chunks 为空说明还没有 play() 过，直接走 play() 从当前页加载
+        if (textChunks.isEmpty()) {
+            play();
+            return;
+        }
         syncLocked = false;
         engine.setSpeed(speed);
         speakFrom(currentChunkIndex);

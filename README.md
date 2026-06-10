@@ -79,6 +79,7 @@ DOWNLOADER_PASSWORD=your-password-here
 | [google/gson](https://github.com/google/gson) | JSON 解析 |
 | [androidx Room](https://developer.android.com/jetpack/androidx/releases/room) | 本地数据库 |
 | [wen1701/FanqieRankTracker](https://github.com/wen1701/FanqieRankTracker) | 书城每日番茄小说分类榜单数据 |
+| [rany2/edge-tts](https://github.com/rany2/edge-tts) | Edge TTS WebSocket 协议实现参考（Sec-MS-GEC 鉴权算法） |
 
 ## 许可
 

@@ -178,6 +178,13 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             public void onEngineChanged(boolean isEdge) {
                 if (mTtsDialog != null) mTtsDialog.setEngine(isEdge);
             }
+
+            @Override
+            public void onEdgeTtsFallback() {
+                Toast.makeText(ReadActivity.this,
+                        "Edge TTS 连接失败，已自动切换到系统 TTS",
+                        Toast.LENGTH_LONG).show();
+            }
         });
 
         mTtsDialog = new TtsDialog(this);
@@ -705,16 +712,44 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
 
         } else if (i == R.id.tv_listen) {
             hideReadSetting();
-            mTtsDialog.setPlayState(mTtsManager.isPlaying());
-            mTtsDialog.show();
-            if (!mTtsManager.isPlaying() && !mTtsManager.isInitialized()) {
-                // TTS 尚未初始化完成，等待回调
-            } else if (!mTtsManager.isPlaying()) {
-                mTtsManager.play();
+            if (!Config.getInstance().isTtsNoticeShown()) {
+                showEdgeTtsNoticeDialog();
+            } else {
+                openTtsDialog();
             }
 
         } else if (i == R.id.bookpop_bottom) {
         } else if (i == R.id.rl_bottom) {
+        }
+    }
+
+    private void showEdgeTtsNoticeDialog() {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("听书提示")
+                .setMessage("在线朗读（Edge TTS）使用微软服务，需要消耗流量，建议在 Wi-Fi 环境下使用。\n\n是否使用在线朗读？")
+                .setPositiveButton("使用 Edge TTS（在线）", (dialog, which) -> {
+                    Config.getInstance().setTtsNoticeShown();
+                    Config.getInstance().setEdgeTts(true);
+                    mTtsManager.switchEngine(true);
+                    openTtsDialog();
+                })
+                .setNegativeButton("使用系统 TTS（离线）", (dialog, which) -> {
+                    Config.getInstance().setTtsNoticeShown();
+                    Config.getInstance().setEdgeTts(false);
+                    mTtsManager.switchEngine(false);
+                    openTtsDialog();
+                })
+                .setCancelable(true)
+                .show();
+    }
+
+    private void openTtsDialog() {
+        mTtsDialog.setPlayState(mTtsManager.isPlaying());
+        mTtsDialog.show();
+        if (!mTtsManager.isPlaying() && !mTtsManager.isInitialized()) {
+            // TTS 尚未初始化完成，等待回调
+        } else if (!mTtsManager.isPlaying()) {
+            mTtsManager.play();
         }
     }
 }

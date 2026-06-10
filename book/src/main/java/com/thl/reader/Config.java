@@ -16,6 +16,7 @@ public class Config {
     private final static String LINE_SPACE_KEY = "linespace";
     private final static String EINK_KEY = "eink";
     private final static String EDGE_TTS_KEY = "edge_tts";
+    private final static String TTS_NOTICE_SHOWN_KEY = "tts_notice_shown";
     // 开启墨水屏前保存的原始设置，用于关闭时恢复
     private final static String PRE_EINK_PAGE_MODE_KEY = "pre_eink_page_mode";
     private final static String PRE_EINK_BOOK_BG_KEY = "pre_eink_book_bg";
@@ -82,11 +83,19 @@ public class Config {
     }
 
     public boolean isEdgeTts() {
-        return sp.getBoolean(EDGE_TTS_KEY, false);
+        return sp.getBoolean(EDGE_TTS_KEY, true);  // 默认使用 Edge TTS
     }
 
     public void setEdgeTts(boolean useEdge) {
         sp.edit().putBoolean(EDGE_TTS_KEY, useEdge).commit();
+    }
+
+    public boolean isTtsNoticeShown() {
+        return sp.getBoolean(TTS_NOTICE_SHOWN_KEY, false);
+    }
+
+    public void setTtsNoticeShown() {
+        sp.edit().putBoolean(TTS_NOTICE_SHOWN_KEY, true).commit();
     }
 
     public int getPreEinkPageMode() {
