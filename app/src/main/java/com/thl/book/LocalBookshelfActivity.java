@@ -405,8 +405,10 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         }
 
         requestStoragePermissionThenInit();
-        // 同步按钮状态（可能启动时自动检查正在运行）
-        setRefreshButtonEnabled(!UpdateChecker.isRunning());
+        // 同步按钮和横条状态（可能启动时广播在 receiver 注册前就发出了）
+        boolean running = UpdateChecker.isRunning();
+        setRefreshButtonEnabled(!running);
+        showUpdateBanner(running);
     }
 
     @Override
