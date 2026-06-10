@@ -491,7 +491,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 View view = LayoutInflater.from(this).inflate(R.layout.view_popu2, null);
                 view.findViewById(R.id.tv_edit).setOnClickListener(this);
                 view.findViewById(R.id.tv_about).setOnClickListener(this);
-                view.findViewById(R.id.tv_share).setOnClickListener(this);
+                view.findViewById(R.id.tv_donate).setOnClickListener(this);
                 view.findViewById(R.id.add_book).setOnClickListener(this);
                 view.findViewById(R.id.find_book).setOnClickListener(this);
                 view.findViewById(R.id.tv_settings).setOnClickListener(this);
@@ -546,12 +546,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 popWindow.dissmiss();
                 break;
 
-            case R.id.tv_share:
-                Intent shareIntent = new Intent(Intent.ACTION_SEND);
-                shareIntent.setType("text/plain");
-                shareIntent.putExtra(Intent.EXTRA_TEXT, "推荐一个小说阅读器：Tomato Reader\nhttps://github.com/bidabrain/Tomato-Novel");
-                shareIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(shareIntent);
+            case R.id.tv_donate:
+                startActivity(new Intent(this, DonateActivity.class));
                 popWindow.dissmiss();
                 break;
         }
