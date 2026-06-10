@@ -49,7 +49,12 @@ public class UpdateChecker {
                         tomatoBooks.add(b);
                     }
                 }
-                if (tomatoBooks.isEmpty()) return;
+                if (tomatoBooks.isEmpty()) {
+                    context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
+                            .putExtra("total_new", 0)
+                            .putExtra(EXTRA_IS_FINISHED, true));
+                    return;
+                }
 
                 // 标记所有书为"更新中…"并刷新书架
                 for (BookList book : tomatoBooks) {

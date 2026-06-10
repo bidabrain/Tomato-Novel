@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 // 读取最近 N 条 git commit 作为 changelog
-def getChangelog(int count = 15) {
+def getChangelog(int count = 3) {
     try {
         def proc = ['git', 'log',
                     "--pretty=format:• %s (%ad)",

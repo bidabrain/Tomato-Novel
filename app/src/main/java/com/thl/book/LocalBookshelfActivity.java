@@ -87,6 +87,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private BookStoreFragment bookStoreFragment;
     private SwitchCompat swEink;
 
+    private TextView tvUpdateStatus;
+
     // "上次读到"卡片
     private View cardContinueReading;
     private TextView tvContinueTitle;
@@ -142,6 +144,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             pollHandler.post(pollRunnable);
             if (isFinished) {
                 setRefreshButtonEnabled(true);
+                showUpdateBanner(false);
                 if (newCount > 0) {
                     Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
                 }
@@ -212,8 +215,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             if (!UpdateChecker.isRunning()) {
                 UpdateChecker.checkOnLaunch(this);
                 setRefreshButtonEnabled(false);
+                showUpdateBanner(true);
             }
         });
+
+        tvUpdateStatus = findViewById(R.id.tv_update_status);
 
         // "上次读到"卡片
         cardContinueReading = findViewById(R.id.card_continue_reading);
@@ -279,6 +285,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         adapter.notifyDataSetChanged();
                         updateContinueCard();
                         refreshLayout.finishRefreshing();
+                        showUpdateBanner(true);
+                        if (!UpdateChecker.isRunning()) {
+                            UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
+                            setRefreshButtonEnabled(false);
+                        }
                     });
                 });
             }
@@ -380,6 +391,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         // Start update check for Fanqie books
         UpdateChecker.checkOnLaunch(this);
+        showUpdateBanner(true);
     }
 
     @Override
@@ -610,6 +622,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         if (ib_refresh == null) return;
         ib_refresh.setEnabled(enabled);
         ib_refresh.setAlpha(enabled ? 1f : 0.4f);
+    }
+
+    private void showUpdateBanner(boolean show) {
+        if (tvUpdateStatus == null) return;
+        tvUpdateStatus.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private void requestPermissins(PermissionUtils.OnPermissionListener listener) {

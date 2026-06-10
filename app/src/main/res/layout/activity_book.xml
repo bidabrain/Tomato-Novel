@@ -52,6 +52,20 @@
                 android:textColorHint="@color/text_hint"
                 android:textSize="14sp" />
 
+            <!-- 联网检查新章节状态横条 -->
+            <TextView
+                android:id="@+id/tv_update_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFF3E0"
+                android:gravity="center"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:text="正在检查新章节…"
+                android:textColor="#BF360C"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
             <!-- 上次读到 卡片（有阅读记录时显示） -->
             <LinearLayout
                 android:id="@+id/card_continue_reading"

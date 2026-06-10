@@ -60,22 +60,6 @@
         <include layout="@layout/include_horizontal_line" />
 
         <TextView
-            android:id="@+id/tv_about"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_menu_sel"
-            android:gravity="center"
-            android:paddingBottom="9sp"
-            android:paddingLeft="25dp"
-            android:paddingRight="25dp"
-            android:paddingTop="9sp"
-            android:text="关于"
-            android:textColor="#000000"
-            android:textSize="14sp" />
-
-        <include layout="@layout/include_horizontal_line" />
-
-        <TextView
             android:id="@+id/tv_export"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -134,6 +118,22 @@
             android:paddingRight="25dp"
             android:paddingTop="9sp"
             android:text="服务器设置"
+            android:textColor="#000000"
+            android:textSize="14sp" />
+
+        <include layout="@layout/include_horizontal_line" />
+
+        <TextView
+            android:id="@+id/tv_about"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_menu_sel"
+            android:gravity="center"
+            android:paddingBottom="9sp"
+            android:paddingLeft="25dp"
+            android:paddingRight="25dp"
+            android:paddingTop="9sp"
+            android:text="关于"
             android:textColor="#000000"
             android:textSize="14sp" />
 

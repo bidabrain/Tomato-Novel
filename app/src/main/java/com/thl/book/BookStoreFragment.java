@@ -5,7 +5,9 @@ import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -73,6 +75,39 @@ public class BookStoreFragment extends Fragment {
                 BookDetailActivity.start(requireActivity(),
                         book.title, book.author, book.reads, book.intro, book.cover));
         rvBooks.setAdapter(gridAdapter);
+
+        // 左右滑动切换分类 tag（循环）
+        GestureDetector swipeDetector = new GestureDetector(requireContext(),
+                new GestureDetector.SimpleOnGestureListener() {
+                    private static final int SWIPE_MIN_DISTANCE = 80;
+                    private static final int SWIPE_MIN_VELOCITY = 200;
+
+                    @Override
+                    public boolean onFling(MotionEvent e1, MotionEvent e2,
+                                          float velocityX, float velocityY) {
+                        if (e1 == null || e2 == null || categories == null || categories.isEmpty())
+                            return false;
+                        float diffX = e2.getX() - e1.getX();
+                        float diffY = e2.getY() - e1.getY();
+                        if (Math.abs(diffX) > Math.abs(diffY)
+                                && Math.abs(diffX) > SWIPE_MIN_DISTANCE
+                                && Math.abs(velocityX) > SWIPE_MIN_VELOCITY) {
+                            int next = diffX < 0
+                                    ? (selectedIndex + 1) % categories.size()
+                                    : (selectedIndex - 1 + categories.size()) % categories.size();
+                            selectCategory(next);
+                            return true;
+                        }
+                        return false;
+                    }
+                });
+        rvBooks.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                swipeDetector.onTouchEvent(e);
+                return false;
+            }
+        });
 
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         swipeRefresh.setOnRefreshListener(() -> {
@@ -188,14 +223,7 @@ public class BookStoreFragment extends Fragment {
 
             applyChipStyle(chip, i == selectedIndex);
 
-            chip.setOnClickListener(v -> {
-                if (selectedIndex == index) return;
-                selectedIndex = index;
-                buildChips();       // 刷新所有 chip 样式
-                showBooksForIndex(index);
-                // 滚动让选中 chip 可见
-                scrollChips.post(() -> scrollChips.smoothScrollTo(v.getLeft(), 0));
-            });
+            chip.setOnClickListener(v -> selectCategory(index));
             chipGroup.addView(chip);
         }
     }
@@ -220,6 +248,17 @@ public class BookStoreFragment extends Fragment {
         getView().setBackgroundColor(eink ? 0xFFFFFFFF
                 : getResources().getColor(R.color.bg_activity));
         if (categories != null) buildChips();
+    }
+
+    private void selectCategory(int index) {
+        if (categories == null || categories.isEmpty() || index == selectedIndex) return;
+        selectedIndex = index;
+        buildChips();
+        showBooksForIndex(index);
+        chipGroup.post(() -> {
+            View chip = chipGroup.getChildAt(index);
+            if (chip != null) scrollChips.smoothScrollTo(chip.getLeft(), 0);
+        });
     }
 
     private void showBooksForIndex(int index) {
