@@ -895,7 +895,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
             com.thl.book.download.NovelDownloadManager manager =
                     new com.thl.book.download.NovelDownloadManager(appCtx);
-            manager.downloadFull(book.getTomatoBookId(), book.getBookname(), null, null, outputPath,
+            manager.downloadFull(book.getTomatoBookId(), book.getBookname(), null, book.getCoverUrl(), outputPath,
                     new com.thl.book.download.NovelDownloadManager.ProgressCallback() {
                         @Override public void onProgress(int d, int t) {}
 

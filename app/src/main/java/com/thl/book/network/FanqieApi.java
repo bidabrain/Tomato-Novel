@@ -102,13 +102,13 @@ public class FanqieApi {
     }
 
     /**
-     * Search by bookId to retrieve a fresh cover URL (thumb_url).
+     * Search by bookTitle to retrieve a fresh cover URL (thumb_url), verified by bookId.
      * Returns null if not found or on failure.
      */
-    public String fetchFreshCoverUrl(String bookId) {
-        if (bookId == null || bookId.isEmpty()) return null;
+    public String fetchFreshCoverUrl(String bookId, String bookTitle) {
+        if (bookId == null || bookTitle == null || bookTitle.isEmpty()) return null;
         try {
-            List<SearchItem> results = search(bookId);
+            List<SearchItem> results = search(bookTitle);
             if (results == null) return null;
             for (SearchItem item : results) {
                 if (bookId.equals(item.bookId) && item.coverUrl != null && !item.coverUrl.isEmpty()) {
