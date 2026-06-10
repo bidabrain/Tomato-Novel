@@ -35,6 +35,13 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
     CircleImageView iv_bg4;
     CircleImageView iv_bg5;
     TextView tv_size_default;
+    TextView tv_line_space_subtract;
+    TextView tv_line_space;
+    TextView tv_line_space_add;
+    TextView tv_line_space_default;
+    TextView tv_font_name;
+    TextView tv_font_pick;
+    TextView tv_font_default;
 
     private Config config;
     private Boolean isSystem;
@@ -42,6 +49,10 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
     private int FONT_SIZE_MIN;
     private int FONT_SIZE_MAX;
     private int currentFontSize;
+    private int LINE_SPACE_MIN;
+    private int LINE_SPACE_MAX;
+    private int LINE_SPACE_STEP;
+    private int currentLineSpace;
 
     private SettingDialog(Context context, boolean flag, OnCancelListener listener) {
         super(context, flag, listener);
@@ -76,6 +87,13 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         iv_bg4 = (CircleImageView) findViewById(com.thl.reader.R.id.iv_bg_4);
         iv_bg5 = (CircleImageView) findViewById(com.thl.reader.R.id.iv_bg_5);
         tv_size_default = (TextView) findViewById(com.thl.reader.R.id.tv_size_default);
+        tv_line_space_subtract = (TextView) findViewById(com.thl.reader.R.id.tv_line_space_subtract);
+        tv_line_space = (TextView) findViewById(com.thl.reader.R.id.tv_line_space);
+        tv_line_space_add = (TextView) findViewById(com.thl.reader.R.id.tv_line_space_add);
+        tv_line_space_default = (TextView) findViewById(com.thl.reader.R.id.tv_line_space_default);
+        tv_font_name = (TextView) findViewById(com.thl.reader.R.id.tv_font_name);
+        tv_font_pick = (TextView) findViewById(com.thl.reader.R.id.tv_font_pick);
+        tv_font_default = (TextView) findViewById(com.thl.reader.R.id.tv_font_default);
 
         findViewById(com.thl.reader.R.id.tv_dark).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.tv_bright).setOnClickListener(this);
@@ -89,6 +107,11 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         findViewById(com.thl.reader.R.id.iv_bg_3).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.iv_bg_4).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.iv_bg_5).setOnClickListener(this);
+        findViewById(com.thl.reader.R.id.tv_line_space_subtract).setOnClickListener(this);
+        findViewById(com.thl.reader.R.id.tv_line_space_add).setOnClickListener(this);
+        findViewById(com.thl.reader.R.id.tv_line_space_default).setOnClickListener(this);
+        findViewById(com.thl.reader.R.id.tv_font_pick).setOnClickListener(this);
+        findViewById(com.thl.reader.R.id.tv_font_default).setOnClickListener(this);
 
         WindowManager m = getWindow().getWindowManager();
         Display d = m.getDefaultDisplay();
@@ -98,6 +121,9 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
 
         FONT_SIZE_MIN = (int) getContext().getResources().getDimension(com.thl.reader.R.dimen.reading_min_text_size);
         FONT_SIZE_MAX = (int) getContext().getResources().getDimension(com.thl.reader.R.dimen.reading_max_text_size);
+        LINE_SPACE_MIN = (int) getContext().getResources().getDimension(com.thl.reader.R.dimen.reading_min_line_spacing);
+        LINE_SPACE_MAX = (int) getContext().getResources().getDimension(com.thl.reader.R.dimen.reading_max_line_spacing);
+        LINE_SPACE_STEP = com.thl.reader.util.DisplayUtils.dp2px(getContext(), 2);
 
         config = Config.getInstance();
 
@@ -109,6 +135,20 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         //初始化字体大小
         currentFontSize = (int) config.getFontSize();
         tv_size.setText(currentFontSize + "");
+
+        //初始化行间距
+        currentLineSpace = (int) config.getLineSpace();
+        tv_line_space.setText(com.thl.reader.util.DisplayUtils.px2dp(getContext(), currentLineSpace) + "");
+
+        //初始化字体名显示
+        String savedPath = config.getTypefacePath();
+        if (savedPath == null || savedPath.equals(com.thl.reader.Config.FONTTYPE_DEFAULT)) {
+            tv_font_name.setText("系统默认");
+        } else {
+            String name = savedPath.contains("/") ? savedPath.substring(savedPath.lastIndexOf('/') + 1) : savedPath;
+            if (name.contains(".")) name = name.substring(0, name.lastIndexOf('.'));
+            tv_font_name.setText(name);
+        }
 
         //初始化字体
         selectBg(config.getBookBgType());
@@ -255,6 +295,20 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         } else if (i == com.thl.reader.R.id.tv_size_default) {
             defaultFontSize();
 
+        } else if (i == com.thl.reader.R.id.tv_font_pick) {
+            if (mSettingListener != null) mSettingListener.pickFont();
+        } else if (i == com.thl.reader.R.id.tv_font_default) {
+            config.setTypeface(com.thl.reader.Config.FONTTYPE_DEFAULT);
+            tv_font_name.setText("系统默认");
+            if (mSettingListener != null) mSettingListener.changeTypeFace(android.graphics.Typeface.DEFAULT);
+
+        } else if (i == com.thl.reader.R.id.tv_line_space_subtract) {
+            subtractLineSpace();
+        } else if (i == com.thl.reader.R.id.tv_line_space_add) {
+            addLineSpace();
+        } else if (i == com.thl.reader.R.id.tv_line_space_default) {
+            defaultLineSpace();
+
         } else if (i == com.thl.reader.R.id.iv_bg_default) {
             setBookBg(Config.BOOK_BG_DEFAULT);
             selectBg(Config.BOOK_BG_DEFAULT);
@@ -314,6 +368,40 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         }
     }
 
+    //增大行间距
+    private void addLineSpace() {
+        if (currentLineSpace < LINE_SPACE_MAX) {
+            currentLineSpace += LINE_SPACE_STEP;
+            tv_line_space.setText(com.thl.reader.util.DisplayUtils.px2dp(getContext(), currentLineSpace) + "");
+            config.setLineSpace(currentLineSpace);
+            if (mSettingListener != null) {
+                mSettingListener.changeLineSpace(currentLineSpace);
+            }
+        }
+    }
+
+    //减小行间距
+    private void subtractLineSpace() {
+        if (currentLineSpace > LINE_SPACE_MIN) {
+            currentLineSpace -= LINE_SPACE_STEP;
+            tv_line_space.setText(com.thl.reader.util.DisplayUtils.px2dp(getContext(), currentLineSpace) + "");
+            config.setLineSpace(currentLineSpace);
+            if (mSettingListener != null) {
+                mSettingListener.changeLineSpace(currentLineSpace);
+            }
+        }
+    }
+
+    //恢复默认行间距
+    private void defaultLineSpace() {
+        currentLineSpace = (int) getContext().getResources().getDimension(com.thl.reader.R.dimen.reading_line_spacing);
+        tv_line_space.setText(com.thl.reader.util.DisplayUtils.px2dp(getContext(), currentLineSpace) + "");
+        config.setLineSpace(currentLineSpace);
+        if (mSettingListener != null) {
+            mSettingListener.changeLineSpace(currentLineSpace);
+        }
+    }
+
     //改变亮度
     public void changeBright(Boolean isSystem, int brightness) {
         float light = (float) (brightness / 100.0);
@@ -323,6 +411,10 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         if (mSettingListener != null) {
             mSettingListener.changeSystemBright(isSystem, light);
         }
+    }
+
+    public void setFontName(String name) {
+        if (tv_font_name != null) tv_font_name.setText(name);
     }
 
     public void setSettingListener(SettingListener settingListener) {
@@ -337,6 +429,10 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         void changeTypeFace(Typeface typeface);
 
         void changeBookBg(int type);
+
+        void changeLineSpace(int lineSpace);
+
+        void pickFont();
     }
 
 }

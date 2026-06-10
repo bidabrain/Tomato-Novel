@@ -19,7 +19,11 @@
     <!-- 书本字体最小大小 -->
     <dimen name="reading_min_text_size">10sp</dimen>
     <!-- 书本字体最大大小 -->
-    <dimen name="reading_max_text_size">30sp</dimen>
+    <dimen name="reading_max_text_size">40sp</dimen>
+    <!-- 行间距最小值 -->
+    <dimen name="reading_min_line_spacing">4dp</dimen>
+    <!-- 行间距最大值 -->
+    <dimen name="reading_max_line_spacing">30dp</dimen>
     <!-- 设置行高 -->
     <dimen name="setting_height">60dp</dimen>
 </resources>

@@ -155,7 +155,7 @@ public class PageFactory {
         marginWidth = mContext.getResources().getDimension(R.dimen.readingMarginWidth);
         marginHeight = mContext.getResources().getDimension(R.dimen.readingMarginHeight);
         statusMarginBottom = mContext.getResources().getDimension(R.dimen.reading_status_margin_bottom);
-        lineSpace = context.getResources().getDimension(R.dimen.reading_line_spacing);
+        lineSpace = config.getLineSpace();
         paragraphSpace = context.getResources().getDimension(R.dimen.reading_paragraph_spacing);
         mVisibleWidth = mWidth - marginWidth * 2;
         mVisibleHeight = mHeight - marginHeight * 2;
@@ -182,6 +182,14 @@ public class PageFactory {
         mBatterryPaint.setColor(m_textColor);
         batteryInfoIntent = context.getApplicationContext().registerReceiver(null,
                 new IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ;//注册广播,随时获取到电池电量信息
+
+        // 恢复用户保存的字体
+        String savedFontPath = config.getTypefacePath();
+        if (savedFontPath != null && !savedFontPath.equals(Config.FONTTYPE_DEFAULT)) {
+            Typeface savedTypeface = config.getTypeface(savedFontPath);
+            mPaint.setTypeface(savedTypeface);
+            mBatterryPaint.setTypeface(savedTypeface);
+        }
 
         initBg(config.getDayOrNight());
         measureMarginWidth();
@@ -690,6 +698,15 @@ public class PageFactory {
     public void changeFontSize(int fontSize){
         this.m_fontSize = fontSize;
         mPaint.setTextSize(m_fontSize);
+        calculateLineCount();
+        measureMarginWidth();
+        currentPage = getPageForBegin(currentPage.getBegin());
+        currentPage(true);
+    }
+
+    //改变行间距
+    public void changeLineSpace(float lineSpace){
+        this.lineSpace = lineSpace;
         calculateLineCount();
         measureMarginWidth();
         currentPage = getPageForBegin(currentPage.getBegin());

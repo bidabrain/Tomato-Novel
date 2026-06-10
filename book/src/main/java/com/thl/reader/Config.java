@@ -13,6 +13,7 @@ public class Config {
     private final static String LIGHT_KEY = "light";
     private final static String SYSTEM_LIGHT_KEY = "systemlight";
     private final static String PAGE_MODE_KEY = "pagemode";
+    private final static String LINE_SPACE_KEY = "linespace";
     private final static String EINK_KEY = "eink";
     // 开启墨水屏前保存的原始设置，用于关闭时恢复
     private final static String PRE_EINK_PAGE_MODE_KEY = "pre_eink_page_mode";
@@ -40,6 +41,8 @@ public class Config {
     private Typeface typeface;
     //字体大小
     private float mFontSize = 0;
+    //行间距
+    private float mLineSpace = 0;
     //亮度值
     private float light = 0;
     private int bookBG;
@@ -103,8 +106,15 @@ public class Config {
 
     public Typeface getTypeface(String typeFacePath) {
         Typeface mTypeface;
-        if (typeFacePath.equals(FONTTYPE_DEFAULT)) {
+        if (typeFacePath == null || typeFacePath.equals(FONTTYPE_DEFAULT)) {
             mTypeface = Typeface.DEFAULT;
+        } else if (typeFacePath.startsWith("/")) {
+            // 本地文件路径（用户导入）
+            try {
+                mTypeface = Typeface.createFromFile(typeFacePath);
+            } catch (Exception e) {
+                mTypeface = Typeface.DEFAULT;
+            }
         } else {
             mTypeface = Typeface.createFromAsset(mContext.getAssets(), typeFacePath);
         }
@@ -114,6 +124,10 @@ public class Config {
     public void setTypeface(String typefacePath) {
         typeface = getTypeface(typefacePath);
         sp.edit().putString(FONT_TYPE_KEY, typefacePath).commit();
+    }
+
+    public String getTypefacePath() {
+        return sp.getString(FONT_TYPE_KEY, FONTTYPE_DEFAULT);
     }
 
     public float getFontSize() {
@@ -126,6 +140,18 @@ public class Config {
     public void setFontSize(float fontSize) {
         mFontSize = fontSize;
         sp.edit().putFloat(FONT_SIZE_KEY, fontSize).commit();
+    }
+
+    public float getLineSpace() {
+        if (mLineSpace == 0) {
+            mLineSpace = sp.getFloat(LINE_SPACE_KEY, mContext.getResources().getDimension(R.dimen.reading_line_spacing));
+        }
+        return mLineSpace;
+    }
+
+    public void setLineSpace(float lineSpace) {
+        mLineSpace = lineSpace;
+        sp.edit().putFloat(LINE_SPACE_KEY, lineSpace).commit();
     }
 
     /**

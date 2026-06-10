@@ -19,6 +19,10 @@
     <string name="setting_add">A+</string>
     <string name="setting_subtract">A-</string>
     <string name="setting_default">默认字体大小</string>
+    <string name="setting_line_space">行间距</string>
+    <string name="setting_line_space_subtract">-</string>
+    <string name="setting_line_space_add">+</string>
+    <string name="setting_line_space_default">默认行间距</string>
 
     <string name="page_mode_simulation">仿真</string>
     <string name="page_mode_cover">覆盖</string>

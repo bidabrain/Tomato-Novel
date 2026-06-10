@@ -100,6 +100,88 @@
         android:layout_width="match_parent"
         android:layout_height="@dimen/setting_height"
         android:orientation="horizontal">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:text="@string/setting_line_space" />
+        <TextView
+            android:id="@+id/tv_line_space_subtract"
+            style="@style/setting_dialog_button"
+            android:layout_weight="1"
+            android:textSize="30sp"
+            android:background="@null"
+            android:textColor="@color/read_dialog_button_select"
+            android:text="@string/setting_line_space_subtract" />
+        <TextView
+            android:id="@+id/tv_line_space"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:layout_gravity="center_vertical"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:text="10" />
+        <TextView
+            android:id="@+id/tv_line_space_add"
+            style="@style/setting_dialog_button"
+            android:layout_weight="1"
+            android:textSize="30sp"
+            android:background="@null"
+            android:textColor="@color/read_dialog_button_select"
+            android:text="@string/setting_line_space_add" />
+        <TextView
+            android:id="@+id/tv_line_space_default"
+            style="@style/setting_dialog_button"
+            android:layout_marginLeft="20dp"
+            android:text="@string/setting_line_space_default" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/setting_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:text="字体" />
+        <TextView
+            android:id="@+id/tv_font_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:text="系统默认" />
+        <TextView
+            android:id="@+id/tv_font_pick"
+            style="@style/setting_dialog_button"
+            android:layout_weight="1"
+            android:text="选择" />
+        <TextView
+            android:id="@+id/tv_font_default"
+            style="@style/setting_dialog_button"
+            android:layout_marginLeft="10dp"
+            android:text="默认" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/setting_height"
+        android:orientation="horizontal">
 
         <com.thl.reader.view.CircleImageView
             android:id="@+id/iv_bg_default"

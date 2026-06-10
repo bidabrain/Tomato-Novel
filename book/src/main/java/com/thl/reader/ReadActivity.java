@@ -9,9 +9,14 @@ import android.content.IntentFilter;
 import android.database.SQLException;
 import android.graphics.Point;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import com.google.android.material.appbar.AppBarLayout;
 import androidx.appcompat.widget.Toolbar;
 import android.util.Log;
@@ -50,6 +55,7 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
     private static final String TAG = "ReadActivity";
     private final static String EXTRA_BOOK = "bookList";
     private final static int MESSAGE_CHANGEPROGRESS = 1;
+    private final static int REQUEST_FONT_FILE = 101;
 
     private PageWidget bookpage;
     private TextView tv_progress;
@@ -263,6 +269,24 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             public void changeBookBg(int type) {
                 pageFactory.changeBookBg(type);
             }
+
+            @Override
+            public void changeLineSpace(int lineSpace) {
+                pageFactory.changeLineSpace(lineSpace);
+            }
+
+            @Override
+            public void pickFont() {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("*/*");
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+                        "font/ttf", "font/otf",
+                        "application/x-font-ttf", "application/x-font-otf",
+                        "application/octet-stream"
+                });
+                startActivityForResult(intent, REQUEST_FONT_FILE);
+            }
         });
 
         pageFactory.setPageEvent(new PageFactory.PageEvent() {
@@ -350,6 +374,47 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
     @Override
     protected void onStop() {
         super.onStop();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_FONT_FILE && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
+            if (uri == null) return;
+            try {
+                // 将字体文件复制到 app 私有目录
+                File fontsDir = new File(getFilesDir(), "fonts");
+                if (!fontsDir.exists()) fontsDir.mkdirs();
+
+                String fileName = uri.getLastPathSegment();
+                if (fileName != null && fileName.contains("/")) {
+                    fileName = fileName.substring(fileName.lastIndexOf('/') + 1);
+                }
+                if (fileName == null || fileName.isEmpty()) fileName = "custom_font.ttf";
+
+                File destFile = new File(fontsDir, fileName);
+                try (InputStream in = getContentResolver().openInputStream(uri);
+                     FileOutputStream out = new FileOutputStream(destFile)) {
+                    byte[] buf = new byte[4096];
+                    int len;
+                    while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                }
+
+                Typeface typeface = Typeface.createFromFile(destFile);
+                config.setTypeface(destFile.getAbsolutePath());
+                pageFactory.changeTypeface(typeface);
+
+                // 更新弹窗显示的字体名
+                String displayName = fileName.contains(".")
+                        ? fileName.substring(0, fileName.lastIndexOf('.'))
+                        : fileName;
+                mSettingDialog.setFontName(displayName);
+
+            } catch (Exception e) {
+                Toast.makeText(this, "字体加载失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     @Override
