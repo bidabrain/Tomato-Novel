@@ -42,7 +42,7 @@ cp local.properties.example local.properties
 
 ## 服务器配置
 
-App 依赖自建的 [Fanqie-novel-Downloader](https://github.com/yinian0406/Fanqie-novel-Downloader) 实例进行搜索与下载。
+App 依赖自建的 [Tomato-Novel-Downloader](https://github.com/zhongbai2333/Tomato-Novel-Downloader) 实例进行搜索与下载。
 
 服务器地址和密码**不存储在源码中**，需将 `local.properties.example` 复制为 `local.properties`（已加入 .gitignore）并填写：
 
@@ -74,7 +74,7 @@ DOWNLOADER_PASSWORD=your-password-here
 |---|---|
 | [gedoor/legado](https://github.com/gedoor/legado) | 整体阅读体验的灵感来源 |
 | [yanjunhui2014/ebook_reader](https://github.com/yanjunhui2014/ebook_reader) | 基于 Canvas 的 TXT 翻页引擎（PageFactory / PageWidget） |
-| [yinian0406/Fanqie-novel-Downloader](https://github.com/yinian0406/Fanqie-novel-Downloader) | 番茄小说 API 接入与代理策略参考 |
+| [zhongbai2333/Tomato-Novel-Downloader](https://github.com/zhongbai2333/Tomato-Novel-Downloader) | 番茄小说 API 接入与代理策略参考 |
 | [bumptech/glide](https://github.com/bumptech/glide) | 封面图片加载 |
 | [square/okhttp](https://github.com/square/okhttp) | HTTP 网络请求 |
 | [google/gson](https://github.com/google/gson) | JSON 解析 |
