@@ -60,6 +60,8 @@ public class PageFactory {
     private float measureMarginWidth ;
     // 左右与边缘的距离
     private float marginWidth ;
+    //状态栏距离顶部高度
+    private float statusMarginTop;
     //状态栏距离底部高度
     private float statusMarginBottom;
     //行间距
@@ -154,10 +156,11 @@ public class PageFactory {
 
         marginWidth = mContext.getResources().getDimension(R.dimen.readingMarginWidth);
         marginHeight = mContext.getResources().getDimension(R.dimen.readingMarginHeight);
+        statusMarginTop    = mContext.getResources().getDimension(R.dimen.reading_status_margin_top);
         statusMarginBottom = mContext.getResources().getDimension(R.dimen.reading_status_margin_bottom);
         lineSpace = config.getLineSpace();
         paragraphSpace = context.getResources().getDimension(R.dimen.reading_paragraph_spacing);
-        mVisibleWidth = mWidth - marginWidth * 2;
+        mVisibleWidth  = mWidth - marginWidth * 2;
         mVisibleHeight = mHeight - marginHeight * 2;
 
         m_fontSize = config.getFontSize();
@@ -289,7 +292,7 @@ public class PageFactory {
         String strPercent = df.format(fPercent * 100) + "%";//进度文字
         int nPercentWidth = (int) mBatterryPaint.measureText("999.9%") + 1;  //Paint.measureText直接返回參數字串所佔用的寬度
         c.drawText(strPercent, mWidth - nPercentWidth, mHeight - statusMarginBottom, mBatterryPaint);//x y为坐标值
-        c.drawText(date, marginWidth ,mHeight - statusMarginBottom, mBatterryPaint);
+        c.drawText(date, marginWidth, mHeight - statusMarginBottom, mBatterryPaint);
         // 画电池
         level = batteryInfoIntent.getIntExtra( "level" , 0 );
         int scale = batteryInfoIntent.getIntExtra("scale", 100);
@@ -298,7 +301,7 @@ public class PageFactory {
         //画电池外框
         float width = CommonUtil.convertDpToPixel(mContext,20) - mBorderWidth;
         float height = CommonUtil.convertDpToPixel(mContext,10);
-        rect1.set(rect1Left, mHeight - height - statusMarginBottom,rect1Left + width, mHeight - statusMarginBottom);
+        rect1.set(rect1Left, mHeight - height - statusMarginBottom, rect1Left + width, mHeight - statusMarginBottom);
         rect2.set(rect1Left + mBorderWidth, mHeight - height + mBorderWidth - statusMarginBottom, rect1Left + width - mBorderWidth, mHeight - mBorderWidth - statusMarginBottom);
         c.save();
         c.clipRect(rect2, Region.Op.DIFFERENCE);
@@ -319,12 +322,12 @@ public class PageFactory {
         rect2.bottom = rect2.bottom - poleHeight/4;
         c.drawRect(rect2, mBatterryPaint);
         //画书名
-        c.drawText(CommonUtil.subString(bookName,12), marginWidth ,statusMarginBottom + mBatterryFontSize, mBatterryPaint);
+        c.drawText(CommonUtil.subString(bookName,12), marginWidth, statusMarginTop + mBatterryFontSize, mBatterryPaint);
         //画章
         if (getDirectoryList().size() > 0) {
             String charterName = CommonUtil.subString(getDirectoryList().get(currentCharter).getBookCatalogue(),12);
             int nChaterWidth = (int) mBatterryPaint.measureText(charterName) + 1;
-            c.drawText(charterName, mWidth - marginWidth - nChaterWidth, statusMarginBottom  + mBatterryFontSize, mBatterryPaint);
+            c.drawText(charterName, mWidth - marginWidth - nChaterWidth, statusMarginTop + mBatterryFontSize, mBatterryPaint);
         }
 
         mBookPageWidget.postInvalidate();
@@ -815,6 +818,17 @@ public class PageFactory {
         return mBookUtil.getBookLen();
     }
 
+    /** View 完成 layout 后同步真实尺寸，避免底部出现背景色条带 */
+    public void updateScreenSize(int width, int height) {
+        if (width == mWidth && height == mHeight) return;
+        mWidth = width;
+        mHeight = height;
+        mVisibleWidth  = mWidth - marginWidth * 2;
+        mVisibleHeight = mHeight - marginHeight * 2;
+        calculateLineCount();
+        measureMarginWidth();
+    }
+
     public TRPage getCurrentPage(){
         return currentPage;
     }
@@ -826,6 +840,24 @@ public class PageFactory {
 
     public String getBookPath(){
         return bookPath;
+    }
+
+    /**
+     * 获取指定章节的完整文本，用于 TTS 朗读
+     */
+    public String getChapterText(int chapterIndex) {
+        List<BookCatalogue> chapters = getDirectoryList();
+        if (chapters.isEmpty()) {
+            // 无章节目录：从当前页位置起读 8000 字
+            long begin = currentPage != null ? currentPage.getBegin() : 0;
+            return mBookUtil.readTextRange(begin, begin + 8000);
+        }
+        if (chapterIndex < 0 || chapterIndex >= chapters.size()) return "";
+        long start = chapters.get(chapterIndex).getBookCatalogueStartPos();
+        long end = (chapterIndex + 1 < chapters.size())
+                ? chapters.get(chapterIndex + 1).getBookCatalogueStartPos()
+                : mBookUtil.getBookLen();
+        return mBookUtil.readTextRange(start, end);
     }
     //是否是第一页
     public boolean isfirstPage() {

@@ -39,6 +39,7 @@ import com.thl.reader.db.BookList;
 import com.thl.reader.db.BookMarks;
 import com.thl.reader.dialog.PageModeDialog;
 import com.thl.reader.dialog.SettingDialog;
+import com.thl.reader.dialog.TtsDialog;
 import com.thl.reader.util.BrightnessUtil;
 import com.thl.reader.util.PageFactory;
 import com.thl.reader.view.PageWidget;
@@ -81,6 +82,9 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
     private Boolean isShow = false;
     private SettingDialog mSettingDialog;
     private PageModeDialog mPageModeDialog;
+    private TtsDialog mTtsDialog;
+    private TtsManager mTtsManager;
+    private TextView tv_listen;
     private Boolean mDayOrNight;
 
     // 接收电池信息更新的广播
@@ -144,6 +148,50 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
 
         mSettingDialog = new SettingDialog(this);
         mPageModeDialog = new PageModeDialog(this);
+        tv_listen = (TextView) findViewById(R.id.tv_listen);
+
+        mTtsManager = new TtsManager(this, pageFactory, new TtsManager.TtsListener() {
+            @Override
+            public void onInitSuccess() { }
+
+            @Override
+            public void onInitFail() {
+                Toast.makeText(ReadActivity.this,
+                        "当前设备不支持中文语音，请在系统设置中安装中文 TTS 语音包",
+                        Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onPlayStateChanged(boolean isPlaying) {
+                if (mTtsDialog != null) mTtsDialog.setPlayState(isPlaying);
+                tv_listen.setTextColor(isPlaying
+                        ? getResources().getColor(R.color.read_dialog_button_select)
+                        : getResources().getColor(R.color.white));
+            }
+
+            @Override
+            public void onPageSync(long absPosition) {
+                pageFactory.changeChapter(absPosition);
+            }
+        });
+
+        mTtsDialog = new TtsDialog(this);
+        mTtsDialog.setTtsListener(new TtsDialog.TtsListener() {
+            @Override
+            public void onPlay() { mTtsManager.resume(); }
+
+            @Override
+            public void onPause() { mTtsManager.pause(); }
+
+            @Override
+            public void onPrevChapter() { mTtsManager.prevChapter(); }
+
+            @Override
+            public void onNextChapter() { mTtsManager.nextChapter(); }
+
+            @Override
+            public void onSpeedChange(float speed) { mTtsManager.setSpeed(speed); }
+        });
         //获取屏幕宽高
         WindowManager manage = getWindowManager();
         Display display = manage.getDefaultDisplay();
@@ -201,6 +249,7 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         findViewById(R.id.tv_dayornight).setOnClickListener(this);
         findViewById(R.id.tv_pagemode).setOnClickListener(this);
         findViewById(R.id.tv_setting).setOnClickListener(this);
+        findViewById(R.id.tv_listen).setOnClickListener(this);
         findViewById(R.id.bookpop_bottom).setOnClickListener(this);
         findViewById(R.id.rl_bottom).setOnClickListener(this);
 
@@ -319,7 +368,9 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
                 if (pageFactory.isfirstPage()) {
                     return false;
                 }
-
+                if (mTtsManager != null && mTtsManager.isPlaying()) {
+                    mTtsManager.seekToCurrentPage();
+                }
                 return true;
             }
 
@@ -337,6 +388,9 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
                 pageFactory.nextPage();
                 if (pageFactory.islastPage()) {
                     return false;
+                }
+                if (mTtsManager != null && mTtsManager.isPlaying()) {
+                    mTtsManager.seekToCurrentPage();
                 }
                 return true;
             }
@@ -420,6 +474,7 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (mTtsManager != null) mTtsManager.destroy();
         pageFactory.clear();
         bookpage = null;
         unregisterReceiver(myReceiver);
@@ -637,6 +692,16 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         } else if (i == R.id.tv_setting) {
             hideReadSetting();
             mSettingDialog.show();
+
+        } else if (i == R.id.tv_listen) {
+            hideReadSetting();
+            mTtsDialog.setPlayState(mTtsManager.isPlaying());
+            mTtsDialog.show();
+            if (!mTtsManager.isPlaying() && !mTtsManager.isInitialized()) {
+                // TTS 尚未初始化完成，等待回调
+            } else if (!mTtsManager.isPlaying()) {
+                mTtsManager.play();
+            }
 
         } else if (i == R.id.bookpop_bottom) {
         } else if (i == R.id.rl_bottom) {

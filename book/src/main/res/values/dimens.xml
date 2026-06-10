@@ -8,8 +8,10 @@
     <dimen name="readingMarginWidth">15dp</dimen>
     <!-- 书本高边距 -->
     <dimen name="readingMarginHeight">30dp</dimen>
+    <!-- 状态栏离顶部距离 -->
+    <dimen name="reading_status_margin_top">5dp</dimen>
     <!-- 状态栏离底部距离 -->
-    <dimen name="reading_status_margin_bottom">3dp</dimen>
+    <dimen name="reading_status_margin_bottom">16dp</dimen>
     <!-- 行间距 -->
     <dimen name="reading_line_spacing">10dp</dimen>
     <!-- 段间距 -->

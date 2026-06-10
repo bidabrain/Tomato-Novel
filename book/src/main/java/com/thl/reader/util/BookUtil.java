@@ -274,6 +274,32 @@ public class BookUtil {
         return bookLen;
     }
 
+    /**
+     * 读取指定位置范围的文本，不影响当前 position 状态
+     */
+    public String readTextRange(long start, long end) {
+        end = Math.min(end, bookLen);
+        if (start >= end) return "";
+        StringBuilder sb = new StringBuilder((int)(end - start));
+        long offset = 0;
+        for (int i = 0; i < myArray.size() && offset < end; i++) {
+            char[] blk = block(i);
+            int blkSize = (int) myArray.get(i).getSize();
+            long blkEnd = offset + blkSize;
+            if (blkEnd <= start) {
+                offset = blkEnd;
+                continue;
+            }
+            int readStart = (int) Math.max(0, start - offset);
+            int readEnd   = (int) Math.min(blkSize, end - offset);
+            if (readStart < readEnd) {
+                sb.append(blk, readStart, readEnd - readStart);
+            }
+            offset = blkEnd;
+        }
+        return sb.toString();
+    }
+
     protected String fileName(int index) {
         return cachedPath + bookName + index ;
     }

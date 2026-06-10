@@ -77,7 +77,9 @@ public class PageWidget extends View {
     private void initPage(){
         WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
         DisplayMetrics metric = new DisplayMetrics();
-        wm.getDefaultDisplay().getMetrics(metric);
+        // Use real metrics so bitmaps cover the full display in immersive mode,
+        // preventing a background-color strip at the bottom of the widget.
+        wm.getDefaultDisplay().getRealMetrics(metric);
         mScreenWidth = metric.widthPixels;
         mScreenHeight = metric.heightPixels;
         mCurPageBitmap = Bitmap.createBitmap(mScreenWidth, mScreenHeight, Bitmap.Config.RGB_565);      //android:LargeHeap=true  use in  manifest application
@@ -87,14 +89,11 @@ public class PageWidget extends View {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
-        // Exclude left and right edges from Android 10+ gesture navigation so
-        // page-flip swipes are not consumed by the system back gesture.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             int w = right - left;
             int h = bottom - top;
-            int edgeWidth = Math.min(w / 5, 100); // up to 20% or 100px
             setSystemGestureExclusionRects(Collections.singletonList(
-                    new Rect(0, 0, w, h))); // exclude entire view
+                    new Rect(0, 0, w, h)));
         }
     }
 
@@ -131,7 +130,6 @@ public class PageWidget extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-//        canvas.drawColor(0xFFAAAAAA);
         canvas.drawColor(mBgColor);
         Log.e("onDraw","isNext:" + isNext + "          isRuning:" + isRuning);
         if (isRuning) {
