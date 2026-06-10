@@ -98,6 +98,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
     private CustomPopWindow popWindow;
     private boolean isDel = false;
+    private boolean coverRefreshDone = false;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     // 独立线程用于下载，避免阻塞书架刷新
@@ -439,6 +440,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     pollHandler.removeCallbacks(pollRunnable);
                     pollHandler.postDelayed(pollRunnable, 3000);
                 }
+                refreshMissingCovers(books);
             });
         });
     }
@@ -624,6 +626,49 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         if (ib_refresh == null) return;
         ib_refresh.setEnabled(enabled);
         ib_refresh.setAlpha(enabled ? 1f : 0.4f);
+    }
+
+    /** 后台静默修复 coverUrl 为空的番茄书，每次 app 启动只跑一次 */
+    private void refreshMissingCovers(List<BookList> books) {
+        if (coverRefreshDone) return;
+        coverRefreshDone = true;
+        List<BookList> needRefresh = new java.util.ArrayList<>();
+        for (BookList b : books) {
+            if (b.getIsTomato() == 1
+                    && b.getTomatoBookId() != null
+                    && (b.getCoverUrl() == null || b.getCoverUrl().isEmpty())) {
+                needRefresh.add(b);
+            }
+        }
+        if (needRefresh.isEmpty()) return;
+        final Context appCtx = getApplicationContext();
+        executor.execute(() -> {
+            com.thl.book.download.NovelDownloadManager mgr =
+                    new com.thl.book.download.NovelDownloadManager(appCtx);
+            boolean anyUpdated = false;
+            for (BookList b : needRefresh) {
+                String fresh = mgr.fetchFreshCoverUrl(b.getTomatoBookId(), b.getBookname());
+                if (fresh != null) {
+                    DB.bookList().updateDownloadResult(
+                            b.getTomatoBookId(), b.getBookname(),
+                            b.getBookpath() != null ? b.getBookpath() : "",
+                            b.getMsg() != null ? b.getMsg() : "",
+                            b.getCharset() != null ? b.getCharset() : "UTF-8",
+                            fresh);
+                    anyUpdated = true;
+                }
+            }
+            if (anyUpdated) {
+                List<BookList> updated = getBooks();
+                runOnUiThread(() -> {
+                    if (isDestroyed() || isFinishing()) return;
+                    bookLists.clear();
+                    bookLists.addAll(updated);
+                    adapter.notifyDataSetChanged();
+                    updateContinueCard();
+                });
+            }
+        });
     }
 
     private void showUpdateBanner(boolean show) {

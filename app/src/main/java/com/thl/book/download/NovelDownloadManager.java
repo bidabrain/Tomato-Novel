@@ -253,6 +253,11 @@ public class NovelDownloadManager {
     }
 
     /** Returns the default directory for downloaded TXT files. */
+    /** Fetch a fresh cover URL for the given book. Returns null on failure. */
+    public String fetchFreshCoverUrl(String bookId, String bookTitle) {
+        return api.fetchFreshCoverUrl(bookId, bookTitle);
+    }
+
     public static File getTomatoDir(Context context) {
         File dir = new File(context.getExternalFilesDir(null), "tomato");
         dir.mkdirs();
