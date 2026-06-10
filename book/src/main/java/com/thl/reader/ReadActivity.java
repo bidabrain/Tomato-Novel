@@ -173,6 +173,11 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             public void onPageSync(long absPosition) {
                 pageFactory.changeChapter(absPosition);
             }
+
+            @Override
+            public void onEngineChanged(boolean isEdge) {
+                if (mTtsDialog != null) mTtsDialog.setEngine(isEdge);
+            }
         });
 
         mTtsDialog = new TtsDialog(this);
@@ -191,7 +196,12 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
 
             @Override
             public void onSpeedChange(float speed) { mTtsManager.setSpeed(speed); }
+
+            @Override
+            public void onEngineSwitch(boolean useEdge) { mTtsManager.switchEngine(useEdge); }
         });
+        // 同步对话框中的引擎高亮
+        mTtsDialog.setEngine(Config.getInstance().isEdgeTts());
         //获取屏幕宽高
         WindowManager manage = getWindowManager();
         Display display = manage.getDefaultDisplay();

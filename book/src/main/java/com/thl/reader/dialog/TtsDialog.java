@@ -20,6 +20,8 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
     private TextView tv_speed_100;
     private TextView tv_speed_150;
     private TextView tv_speed_200;
+    private TextView tv_engine_system;
+    private TextView tv_engine_edge;
 
     private TtsListener mListener;
     private float currentSpeed = 1.0f;
@@ -30,6 +32,7 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
         void onPrevChapter();
         void onNextChapter();
         void onSpeedChange(float speed);
+        void onEngineSwitch(boolean useEdge);
     }
 
     public TtsDialog(Context context) {
@@ -42,13 +45,15 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
         getWindow().setGravity(Gravity.BOTTOM);
         setContentView(com.thl.reader.R.layout.dialog_tts);
 
-        tv_tts_play   = findViewById(com.thl.reader.R.id.tv_tts_play);
-        tv_tts_prev   = findViewById(com.thl.reader.R.id.tv_tts_prev);
-        tv_tts_next   = findViewById(com.thl.reader.R.id.tv_tts_next);
-        tv_speed_075  = findViewById(com.thl.reader.R.id.tv_speed_075);
-        tv_speed_100  = findViewById(com.thl.reader.R.id.tv_speed_100);
-        tv_speed_150  = findViewById(com.thl.reader.R.id.tv_speed_150);
-        tv_speed_200  = findViewById(com.thl.reader.R.id.tv_speed_200);
+        tv_tts_play      = findViewById(com.thl.reader.R.id.tv_tts_play);
+        tv_tts_prev      = findViewById(com.thl.reader.R.id.tv_tts_prev);
+        tv_tts_next      = findViewById(com.thl.reader.R.id.tv_tts_next);
+        tv_speed_075     = findViewById(com.thl.reader.R.id.tv_speed_075);
+        tv_speed_100     = findViewById(com.thl.reader.R.id.tv_speed_100);
+        tv_speed_150     = findViewById(com.thl.reader.R.id.tv_speed_150);
+        tv_speed_200     = findViewById(com.thl.reader.R.id.tv_speed_200);
+        tv_engine_system = findViewById(com.thl.reader.R.id.tv_engine_system);
+        tv_engine_edge   = findViewById(com.thl.reader.R.id.tv_engine_edge);
 
         tv_tts_play.setOnClickListener(this);
         tv_tts_prev.setOnClickListener(this);
@@ -57,6 +62,8 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
         tv_speed_100.setOnClickListener(this);
         tv_speed_150.setOnClickListener(this);
         tv_speed_200.setOnClickListener(this);
+        tv_engine_system.setOnClickListener(this);
+        tv_engine_edge.setOnClickListener(this);
 
         WindowManager m = getWindow().getWindowManager();
         Display d = m.getDefaultDisplay();
@@ -64,7 +71,6 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
         p.width = d.getWidth();
         getWindow().setAttributes(p);
 
-        // 默认高亮 1.0x
         selectSpeed(1.0f);
     }
 
@@ -72,7 +78,6 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
     public void onClick(View v) {
         int id = v.getId();
         if (id == com.thl.reader.R.id.tv_tts_play) {
-            // 由外部根据当前状态决定播放/暂停，通过 setPlayState 更新显示
             if (mListener != null) {
                 if (tv_tts_play.getText().toString().startsWith("▶")) {
                     mListener.onPlay();
@@ -92,6 +97,12 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
             changeSpeed(1.5f);
         } else if (id == com.thl.reader.R.id.tv_speed_200) {
             changeSpeed(2.0f);
+        } else if (id == com.thl.reader.R.id.tv_engine_system) {
+            selectEngine(false);
+            if (mListener != null) mListener.onEngineSwitch(false);
+        } else if (id == com.thl.reader.R.id.tv_engine_edge) {
+            selectEngine(true);
+            if (mListener != null) mListener.onEngineSwitch(true);
         }
     }
 
@@ -101,15 +112,32 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
         if (mListener != null) mListener.onSpeedChange(speed);
     }
 
-    /** 更新播放/暂停按钮显示 */
     public void setPlayState(boolean isPlaying) {
         if (tv_tts_play != null) {
             tv_tts_play.setText(isPlaying ? "⏸ 暂停" : "▶ 播放");
         }
     }
 
+    /** 同步高亮当前引擎按钮，由外部在 onEngineChanged 回调中调用 */
+    public void setEngine(boolean isEdge) {
+        if (tv_engine_system == null || tv_engine_edge == null) return;
+        selectEngine(isEdge);
+    }
+
+    private void selectEngine(boolean isEdge) {
+        if (tv_engine_system == null || tv_engine_edge == null) return;
+        int selected = com.thl.reader.R.drawable.button_select_bg;
+        int normal   = com.thl.reader.R.drawable.button_bg;
+        int selColor = getContext().getResources().getColor(com.thl.reader.R.color.read_dialog_button_select);
+        int norColor = getContext().getResources().getColor(com.thl.reader.R.color.white);
+
+        tv_engine_system.setBackgroundDrawable(getContext().getResources().getDrawable(isEdge ? normal : selected));
+        tv_engine_edge.setBackgroundDrawable(getContext().getResources().getDrawable(isEdge ? selected : normal));
+        tv_engine_system.setTextColor(isEdge ? norColor : selColor);
+        tv_engine_edge.setTextColor(isEdge ? selColor : norColor);
+    }
+
     private void selectSpeed(float speed) {
-        int border = DisplayUtils.dp2px(getContext(), 2);
         tv_speed_075.setBackgroundDrawable(getContext().getResources().getDrawable(
                 speed == 0.75f ? com.thl.reader.R.drawable.button_select_bg : com.thl.reader.R.drawable.button_bg));
         tv_speed_100.setBackgroundDrawable(getContext().getResources().getDrawable(
