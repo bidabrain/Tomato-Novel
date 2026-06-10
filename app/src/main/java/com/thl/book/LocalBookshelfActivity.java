@@ -796,23 +796,33 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             int skipped = 0;
             for (BookList book : imported) {
                 if (book.getIsTomato() == 1 && book.getTomatoBookId() != null) {
-                    // 番茄书：未在书架则加入并重新下载
-                    List<BookList> existing = DB.bookList().findByTomatoBookId(book.getTomatoBookId());
-                    if (!existing.isEmpty()) { skipped++; continue; }
-
+                    // 番茄书：无论是否已在书架，只要没有本地文件就重新下载
                     String outputPath = new File(
                             com.thl.book.download.NovelDownloadManager.getTomatoDir(this),
                             book.getBookname().replaceAll("[\\\\/:*?\"<>|]", "_") + ".txt"
                     ).getAbsolutePath();
 
-                    BookList placeholder = new BookList();
-                    placeholder.setBookname(book.getBookname());
-                    placeholder.setBookpath("");
-                    placeholder.setIsTomato(1);
-                    placeholder.setTomatoBookId(book.getTomatoBookId());
-                    placeholder.setMsg("下载中…");
-                    placeholder.setCoverUrl(book.getCoverUrl());
-                    DB.save(placeholder);
+                    // 文件已存在则跳过（已正常下载完成）
+                    if (new java.io.File(outputPath).exists()) { skipped++; continue; }
+
+                    List<BookList> existing = DB.bookList().findByTomatoBookId(book.getTomatoBookId());
+                    BookList placeholder;
+                    if (!existing.isEmpty()) {
+                        // 已有残留条目，复用并重置状态触发重新下载
+                        placeholder = existing.get(0);
+                        placeholder.setBookpath("");
+                        placeholder.setMsg("下载中…");
+                        DB.bookList().update(placeholder);
+                    } else {
+                        placeholder = new BookList();
+                        placeholder.setBookname(book.getBookname());
+                        placeholder.setBookpath("");
+                        placeholder.setIsTomato(1);
+                        placeholder.setTomatoBookId(book.getTomatoBookId());
+                        placeholder.setMsg("下载中…");
+                        placeholder.setCoverUrl(book.getCoverUrl());
+                        DB.save(placeholder);
+                    }
 
                     final Context appCtx = getApplicationContext();
                     final String bookId = book.getTomatoBookId();

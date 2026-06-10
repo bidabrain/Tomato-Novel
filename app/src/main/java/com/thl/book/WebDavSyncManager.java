@@ -56,6 +56,16 @@ public class WebDavSyncManager {
         void onError(String error);
     }
 
+    /** Bookshelf snapshot written to tomato_bookshelf.json. */
+    public static class BookshelfSnapshot {
+        public long modifiedAt;
+        public List<BookList> books;
+        BookshelfSnapshot(long modifiedAt, List<BookList> books) {
+            this.modifiedAt = modifiedAt;
+            this.books = books;
+        }
+    }
+
     /** Lightweight progress record stored in tomato_progress.json. */
     public static class BookProgress {
         public String tomatoBookId;
@@ -100,30 +110,41 @@ public class WebDavSyncManager {
         StringBuilder log = new StringBuilder();
 
         try {
-            // ── 1. Sync bookshelf (last-write-wins) ────────────────────────────
+            // ── 1. Sync bookshelf (last-write-wins, timestamp embedded in JSON) ─
             String bookshelfUrl = baseUrl + WebDavConfig.FILE_BOOKSHELF;
             long localBookshelfModified = SharedPreferencesUtils.getLong(
                     context, WebDavConfig.KEY_BOOKSHELF_LOCAL_MODIFIED, 0L);
-            long remoteBookshelfTime = getRemoteLastModified(client, auth, bookshelfUrl);
 
-            if (remoteBookshelfTime < 0) {
+            // PROPFIND only to check connectivity and file existence (not for timestamp)
+            long remoteExists = getRemoteLastModified(client, auth, bookshelfUrl);
+            if (remoteExists < 0) {
                 throw new Exception("无法连接 WebDAV 服务器，请检查地址和账号密码");
             }
 
             List<BookList> localBooks;
-            if (remoteBookshelfTime > 0 && remoteBookshelfTime > localBookshelfModified) {
-                // Remote is newer → download and fully replace local bookshelf
+            if (remoteExists > 0) {
+                // File exists: download and read the embedded timestamp
                 String remoteJson = getFile(client, auth, bookshelfUrl);
-                int[] result = replaceLocalBookshelf(remoteJson, gson);
-                // Record the remote timestamp so we won't re-download until local changes again
-                SharedPreferencesUtils.saveLong(context,
-                        WebDavConfig.KEY_BOOKSHELF_LOCAL_MODIFIED, remoteBookshelfTime);
-                log.append("书架已从服务器同步（新增 ").append(result[0])
-                        .append(" 本，移除 ").append(result[1]).append(" 本）\n");
+                BookshelfSnapshot snapshot = parseSnapshot(remoteJson, gson);
+                if (snapshot.modifiedAt > localBookshelfModified) {
+                    // Remote is newer → apply to local
+                    int[] result = replaceLocalBookshelf(snapshot);
+                    SharedPreferencesUtils.saveLong(context,
+                            WebDavConfig.KEY_BOOKSHELF_LOCAL_MODIFIED, snapshot.modifiedAt);
+                    log.append("书架已从服务器同步（新增 ").append(result[0])
+                            .append(" 本，移除 ").append(result[1]).append(" 本）\n");
+                } else {
+                    // Local is newer or equal → upload
+                    localBooks = DB.bookList().findAll();
+                    putFile(client, auth, bookshelfUrl,
+                            gson.toJson(new BookshelfSnapshot(localBookshelfModified, localBooks)));
+                    log.append("书架已上传到服务器\n");
+                }
             } else {
-                // Local is newer, equal, or remote doesn't exist → upload local bookshelf
+                // Remote file doesn't exist → upload local bookshelf
                 localBooks = DB.bookList().findAll();
-                putFile(client, auth, bookshelfUrl, gson.toJson(localBooks));
+                putFile(client, auth, bookshelfUrl,
+                        gson.toJson(new BookshelfSnapshot(localBookshelfModified, localBooks)));
                 log.append("书架已上传到服务器\n");
             }
 
@@ -234,6 +255,25 @@ public class WebDavSyncManager {
 
     // ── Data helpers ───────────────────────────────────────────────────────────
 
+    /**
+     * Parse remote JSON into a BookshelfSnapshot.
+     * Supports both new format {"modifiedAt":...,"books":[...]}
+     * and legacy format (plain array [...]).
+     */
+    private static BookshelfSnapshot parseSnapshot(String json, Gson gson) {
+        try {
+            BookshelfSnapshot s = gson.fromJson(json, BookshelfSnapshot.class);
+            if (s != null && s.books != null) return s;
+        } catch (Exception ignored) {}
+        // Legacy: plain array
+        try {
+            List<BookList> books = gson.fromJson(json,
+                    new TypeToken<List<BookList>>() {}.getType());
+            return new BookshelfSnapshot(0, books != null ? books : new ArrayList<>());
+        } catch (Exception ignored) {}
+        return new BookshelfSnapshot(0, new ArrayList<>());
+    }
+
     private static List<BookProgress> buildProgressList(List<BookList> books) {
         List<BookProgress> list = new ArrayList<>(books.size());
         for (BookList book : books) {
@@ -257,13 +297,8 @@ public class WebDavSyncManager {
      *
      * @return int[]{added, removed}
      */
-    private static int[] replaceLocalBookshelf(String json, Gson gson) {
-        List<BookList> remote;
-        try {
-            remote = gson.fromJson(json, new TypeToken<List<BookList>>() {}.getType());
-        } catch (Exception e) {
-            return new int[]{0, 0};
-        }
+    private static int[] replaceLocalBookshelf(BookshelfSnapshot snapshot) {
+        List<BookList> remote = snapshot.books;
         if (remote == null) return new int[]{0, 0};
 
         List<BookList> local = DB.bookList().findAll();
