@@ -230,18 +230,33 @@ public class FanqieApi {
      * Retries a few times to allow async library scan to complete.
      */
     public String findLibraryFile(String title) {
-        for (int attempt = 0; attempt < 5; attempt++) {
+        // 第一次调用触发扫描（start=true，默认），后续轮询用 start=false 读缓存结果
+        // 最多等 60 秒（30 次 × 2 秒）
+        for (int attempt = 0; attempt < 30; attempt++) {
             if (attempt > 0) {
                 try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
             }
+            // 首次触发新扫描；后续只读取缓存结果，避免每次重启扫描都返回 running:true
+            boolean isFirst = (attempt == 0);
             HttpUrl url = HttpUrl.parse(downloaderUrl + "/api/library")
                     .newBuilder()
                     .addQueryParameter("name", title)
+                    .addQueryParameter("start", isFirst ? "true" : "false")
                     .build();
             try (Response resp = client.newCall(authReq(url.toString()).build()).execute()) {
-                if (!resp.isSuccessful() || resp.body() == null) continue;
-                JsonObject root = gson.fromJson(resp.body().string(), JsonObject.class);
-                if (!root.has("items")) continue;
+                if (!resp.isSuccessful() || resp.body() == null) {
+                    Log.d(TAG, "findLibraryFile attempt=" + attempt + " http=" + resp.code());
+                    continue;
+                }
+                String bodyStr = resp.body().string();
+                Log.d(TAG, "findLibraryFile attempt=" + attempt + " body=" + bodyStr);
+                JsonObject root = gson.fromJson(bodyStr, JsonObject.class);
+
+                // 扫描仍在进行，继续等待
+                boolean scanning = root.has("running") && root.get("running").getAsBoolean();
+                if (scanning) continue;
+
+                if (!root.has("items")) break;
                 JsonArray items = root.getAsJsonArray("items");
                 // 优先找直接的 TXT 文件
                 for (JsonElement el : items) {
@@ -260,6 +275,8 @@ public class FanqieApi {
                         if (subPath != null) return subPath;
                     }
                 }
+                // 扫描已完成，没有匹配的文件
+                break;
             } catch (Exception e) {
                 Log.e(TAG, "findLibraryFile exception", e);
             }
@@ -292,7 +309,15 @@ public class FanqieApi {
 
     /** GET /download/{relPath} → save to outputPath. Returns true on success. */
     public boolean downloadFileToPath(String relPath, String outputPath) {
-        String encodedPath = relPath.replace(" ", "%20");
+        String encodedPath;
+        try {
+            // 使用 URI 编码保留路径分隔符 / 但正确编码中文、空格等
+            encodedPath = new java.net.URI(null, null, "/" + relPath, null)
+                    .getRawPath().substring(1);
+        } catch (java.net.URISyntaxException e) {
+            encodedPath = relPath.replace(" ", "%20");
+        }
+        Log.d(TAG, "downloadFileToPath path=" + encodedPath);
         Request req = authReq(downloaderUrl + "/download/" + encodedPath).build();
         try (Response resp = client.newCall(req).execute()) {
             if (!resp.isSuccessful() || resp.body() == null) {

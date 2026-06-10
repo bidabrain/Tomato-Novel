@@ -136,10 +136,12 @@ public class NovelDownloadManager {
         callback.onStatus("服务器已完成，正在获取文件…");
         String relPath = api.findLibraryFile(jobTitle);
         if (relPath == null) {
-            callback.onError("在服务器库中找不到下载完成的文件，请检查服务器格式设置（需为 txt）");
-            return;
+            // library scan 找不到（可能服务器 /data 目录未配置），降级为直接按书名下载
+            Log.d(TAG, "library scan failed, trying direct download by title: " + jobTitle);
+            relPath = jobTitle + ".txt";
+        } else {
+            Log.d(TAG, "found library file: " + relPath);
         }
-        Log.d(TAG, "found library file: " + relPath);
 
         // ── 4. 下载 TXT 到本地 ────────────────────────────────────────────────
         callback.onStatus("正在下载到本地…");
