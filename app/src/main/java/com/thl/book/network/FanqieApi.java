@@ -101,6 +101,24 @@ public class FanqieApi {
         }
     }
 
+    /**
+     * Search by bookId to retrieve a fresh cover URL (thumb_url).
+     * Returns null if not found or on failure.
+     */
+    public String fetchFreshCoverUrl(String bookId) {
+        if (bookId == null || bookId.isEmpty()) return null;
+        try {
+            List<SearchItem> results = search(bookId);
+            if (results == null) return null;
+            for (SearchItem item : results) {
+                if (bookId.equals(item.bookId) && item.coverUrl != null && !item.coverUrl.isEmpty()) {
+                    return item.coverUrl;
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     // ── Downloader Jobs API ───────────────────────────────────────────────────
 
     /**

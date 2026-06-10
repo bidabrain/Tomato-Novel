@@ -150,6 +150,10 @@ public class NovelDownloadManager {
         }
 
         // ── 5. 写入数据库 ─────────────────────────────────────────────────────
+        // 重新获取最新封面 URL（同步备份的旧 URL 可能是带签名的临时链接，换设备后失效）
+        String freshCover = api.fetchFreshCoverUrl(bookId);
+        if (freshCover != null) coverUrl = freshCover;
+
         TomatoBook tomatoBook = new TomatoBook();
         tomatoBook.setBookId(bookId);
         tomatoBook.setBookName(jobTitle);
