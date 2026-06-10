@@ -126,7 +126,12 @@ public class WebDavSyncManager {
                 // File exists: download and read the embedded timestamp
                 String remoteJson = getFile(client, auth, bookshelfUrl);
                 BookshelfSnapshot snapshot = parseSnapshot(remoteJson, gson);
-                if (snapshot.modifiedAt > localBookshelfModified) {
+                boolean remoteNewer = snapshot.modifiedAt > localBookshelfModified;
+                // 本地从未修改（0）且本地无书时，优先信任服务器（防止全新安装用空书架覆盖服务器）
+                boolean freshInstallNoBooks = (localBookshelfModified == 0)
+                        && DB.bookList().findAll().isEmpty()
+                        && snapshot.books != null && !snapshot.books.isEmpty();
+                if (remoteNewer || freshInstallNoBooks) {
                     // Remote is newer → apply to local
                     int[] result = replaceLocalBookshelf(snapshot);
                     SharedPreferencesUtils.saveLong(context,
@@ -134,17 +139,23 @@ public class WebDavSyncManager {
                     log.append("书架已从服务器同步（新增 ").append(result[0])
                             .append(" 本，移除 ").append(result[1]).append(" 本）\n");
                 } else {
-                    // Local is newer or equal → upload
+                    // Local is newer or equal → upload with current timestamp
+                    long uploadTime = System.currentTimeMillis();
                     localBooks = DB.bookList().findAll();
                     putFile(client, auth, bookshelfUrl,
-                            gson.toJson(new BookshelfSnapshot(localBookshelfModified, localBooks)));
+                            gson.toJson(new BookshelfSnapshot(uploadTime, localBooks)));
+                    SharedPreferencesUtils.saveLong(context,
+                            WebDavConfig.KEY_BOOKSHELF_LOCAL_MODIFIED, uploadTime);
                     log.append("书架已上传到服务器\n");
                 }
             } else {
-                // Remote file doesn't exist → upload local bookshelf
+                // Remote file doesn't exist → upload local bookshelf with current timestamp
+                long uploadTime = System.currentTimeMillis();
                 localBooks = DB.bookList().findAll();
                 putFile(client, auth, bookshelfUrl,
-                        gson.toJson(new BookshelfSnapshot(localBookshelfModified, localBooks)));
+                        gson.toJson(new BookshelfSnapshot(uploadTime, localBooks)));
+                SharedPreferencesUtils.saveLong(context,
+                        WebDavConfig.KEY_BOOKSHELF_LOCAL_MODIFIED, uploadTime);
                 log.append("书架已上传到服务器\n");
             }
 
