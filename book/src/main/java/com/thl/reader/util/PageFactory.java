@@ -89,6 +89,8 @@ public class PageFactory {
     private float mBatterryFontSize;
     //背景图片
     private Bitmap m_book_bg = null;
+    // 页面背景纯色（与 getBgBitmap() 对应），用于填充 bitmap 中超出 bgBitmap 的区域
+    private int mPageBgColor = 0xFFCEC29C;
 
     private Intent batteryInfoIntent;
     //电池电量百分比
@@ -237,6 +239,7 @@ public class PageFactory {
         }
 
         Canvas c = new Canvas(bitmap);
+        c.drawColor(mPageBgColor);  // 填满整个 bitmap（含 getRealMetrics 多出的底部区域）
         c.drawBitmap(getBgBitmap(), 0, 0, null);
         waitPaint.setColor(getTextColor());
         waitPaint.setTextAlign(Paint.Align.CENTER);
@@ -265,6 +268,7 @@ public class PageFactory {
         }
 
         Canvas c = new Canvas(bitmap);
+        c.drawColor(mPageBgColor);  // 填满整个 bitmap（含 getRealMetrics 多出的底部区域）
         c.drawBitmap(getBgBitmap(), 0, 0, null);
         mPaint.setTextSize(getFontSize());
         mPaint.setColor(getTextColor());
@@ -786,6 +790,7 @@ public class PageFactory {
     }
 
     public void setBookPageBg(int color){
+        mPageBgColor = color;
         if (mBookPageWidget != null) {
             mBookPageWidget.setBgColor(color);
         }
