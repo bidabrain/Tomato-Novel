@@ -72,6 +72,7 @@ public class EdgeTtsEngine implements TtsEngine {
 
     private MediaPlayer mediaPlayer;
     private File currentTempFile;
+    private Runnable progressTracker;
 
     // 连续失败计数：达到阈值时触发 onFail 以便上层 fallback
     private int consecutiveErrors = 0;
@@ -170,7 +171,7 @@ public class EdgeTtsEngine implements TtsEngine {
                 if (msg.contains("Path:turn.end")) {
                     ws.close(1000, null);
                     if (mySession == sessionId) {
-                        playAudio(audioBuffer.toByteArray(), utteranceId, mySession);
+                        playAudio(audioBuffer.toByteArray(), utteranceId, mySession, text.length());
                     }
                 }
             }
@@ -207,7 +208,7 @@ public class EdgeTtsEngine implements TtsEngine {
         });
     }
 
-    private void playAudio(byte[] audioData, String utteranceId, int mySession) {
+    private void playAudio(byte[] audioData, String utteranceId, int mySession, int textLen) {
         consecutiveErrors = 0;  // 成功收到音频，重置错误计数
         if (audioData.length == 0) {
             mainHandler.post(() -> {
@@ -246,6 +247,7 @@ public class EdgeTtsEngine implements TtsEngine {
                         mediaPlayer.setPlaybackParams(params);
                     }
                     mediaPlayer.setOnCompletionListener(mp -> {
+                        mainHandler.removeCallbacks(progressTracker);
                         cleanupPlayer();
                         if (mySession == sessionId) {
                             callback.onUtteranceDone(utteranceId);
@@ -253,6 +255,7 @@ public class EdgeTtsEngine implements TtsEngine {
                         }
                     });
                     mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                        mainHandler.removeCallbacks(progressTracker);
                         cleanupPlayer();
                         if (mySession == sessionId) {
                             callback.onUtteranceError(utteranceId);
@@ -261,6 +264,23 @@ public class EdgeTtsEngine implements TtsEngine {
                         return true;
                     });
                     mediaPlayer.start();
+                    // 每 500ms 根据播放进度估算当前字符位置，驱动翻页同步
+                    progressTracker = new Runnable() {
+                        @Override public void run() {
+                            MediaPlayer mp = mediaPlayer;
+                            if (mp == null || !mp.isPlaying() || mySession != sessionId) return;
+                            try {
+                                int dur = mp.getDuration();
+                                int pos = mp.getCurrentPosition();
+                                if (dur > 0 && textLen > 0) {
+                                    int charOffset = (int)((float) pos / dur * textLen);
+                                    callback.onRangeStart(utteranceId, charOffset);
+                                }
+                            } catch (Exception ignored) {}
+                            mainHandler.postDelayed(this, 500);
+                        }
+                    };
+                    mainHandler.postDelayed(progressTracker, 500);
                 } catch (Exception e) {
                     Log.e(TAG, "MediaPlayer error: " + e.getMessage());
                     tempFile.delete();
@@ -309,6 +329,7 @@ public class EdgeTtsEngine implements TtsEngine {
         sessionId++;  // 使所有进行中的回调失效
         speakQueue.clear();
         processing = false;
+        if (progressTracker != null) mainHandler.removeCallbacks(progressTracker);
         mainHandler.post(this::releasePrevPlayer);
     }
 

@@ -66,80 +66,123 @@
                 android:textSize="13sp"
                 android:visibility="gone" />
 
-            <!-- 上次读到 卡片（有阅读记录时显示） -->
+            <!-- 顶部双卡片行：左=本周阅读时间，右=上次读到 -->
             <LinearLayout
-                android:id="@+id/card_continue_reading"
+                android:id="@+id/row_top_cards"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="16dp"
                 android:layout_marginRight="16dp"
                 android:layout_marginTop="12dp"
                 android:layout_marginBottom="4dp"
-                android:background="@drawable/bg_continue_card"
-                android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="14dp"
                 android:visibility="gone">
 
-                <!-- 文字区 -->
+                <!-- 左半：本周累计阅读时间 -->
                 <LinearLayout
+                    android:id="@+id/card_weekly_time"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:layout_marginRight="6dp"
+                    android:background="@drawable/bg_continue_card"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="14dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="上次读到"
+                        android:text="本周阅读"
                         android:textColor="#A0826A"
                         android:textSize="11sp" />
 
                     <TextView
-                        android:id="@+id/tv_continue_title"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:ellipsize="end"
-                        android:lines="1"
-                        android:textColor="@color/text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tv_continue_progress"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:textColor="#A0826A"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <!-- 封面缩略图 -->
-                <ImageView
-                    android:id="@+id/iv_continue_cover"
-                    android:layout_width="56dp"
-                    android:layout_height="74dp"
-                    android:layout_marginLeft="12dp"
-                    android:scaleType="centerCrop"
-                    android:src="@mipmap/cover_default_new"
-                    android:contentDescription="封面" />
-
-                <!-- 继续阅读按钮 -->
-                <LinearLayout
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:layout_marginLeft="10dp"
-                    android:background="@color/colorPrimary"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
+                        android:id="@+id/tv_weekly_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="▶"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp" />
+                        android:layout_marginTop="8dp"
+                        android:text="0分钟"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <!-- 右半：上次读到（有阅读记录时显示，否则 GONE 让左半展开） -->
+                <LinearLayout
+                    android:id="@+id/card_continue_reading"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginLeft="6dp"
+                    android:background="@drawable/bg_continue_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="14dp"
+                    android:visibility="gone">
+
+                    <!-- 文字区 -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="上次读到"
+                            android:textColor="#A0826A"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tv_continue_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:lines="1"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_continue_progress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textColor="#A0826A"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- 封面缩略图（缩小以适应半宽） -->
+                    <ImageView
+                        android:id="@+id/iv_continue_cover"
+                        android:layout_width="44dp"
+                        android:layout_height="58dp"
+                        android:layout_marginLeft="8dp"
+                        android:scaleType="centerCrop"
+                        android:src="@mipmap/cover_default_new"
+                        android:contentDescription="封面" />
+
+                    <!-- 继续阅读按钮 -->
+                    <LinearLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_marginLeft="6dp"
+                        android:background="@color/colorPrimary"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="▶"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
                 </LinearLayout>
 
             </LinearLayout>

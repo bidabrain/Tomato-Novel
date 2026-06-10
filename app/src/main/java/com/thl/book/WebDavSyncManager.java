@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.thl.reader.db.BookList;
 import com.thl.reader.db.DB;
+import com.thl.reader.util.ReadingStatsManager;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -64,6 +65,12 @@ public class WebDavSyncManager {
             this.modifiedAt = modifiedAt;
             this.books = books;
         }
+    }
+
+    /** Weekly reading stats stored in tomato_reading_stats.json. */
+    public static class ReadingStats {
+        public String weekStart;
+        public long weeklySeconds;
     }
 
     /** Lightweight progress record stored in tomato_progress.json. */
@@ -180,6 +187,27 @@ public class WebDavSyncManager {
             putFile(client, auth, progressUrl, gson.toJson(buildProgressList(localBooks)));
             log.append("阅读进度已上传到服务器\n");
 
+            // ── 3. Sync reading stats (weekly time, same-week MAX merge) ──────
+            String statsUrl = baseUrl + WebDavConfig.FILE_READING_STATS;
+            long remoteStatsTime = getRemoteLastModified(client, auth, statsUrl);
+            if (remoteStatsTime < 0) {
+                throw new Exception("无法连接 WebDAV 服务器");
+            }
+            if (remoteStatsTime > 0) {
+                String remoteJson = getFile(client, auth, statsUrl);
+                ReadingStats remoteStats = parseReadingStats(remoteJson, gson);
+                if (remoteStats != null) {
+                    ReadingStatsManager.mergeFromSync(context,
+                            remoteStats.weeklySeconds, remoteStats.weekStart);
+                }
+            }
+            // Upload current (merged) stats
+            ReadingStats localStats = new ReadingStats();
+            localStats.weekStart = ReadingStatsManager.getCurrentWeekStart();
+            localStats.weeklySeconds = ReadingStatsManager.getWeeklySeconds(context);
+            putFile(client, auth, statsUrl, gson.toJson(localStats));
+            log.append("阅读时间已同步\n");
+
             callback.onSuccess(log.toString().trim());
 
         } catch (Exception e) {
@@ -283,6 +311,14 @@ public class WebDavSyncManager {
             return new BookshelfSnapshot(0, books != null ? books : new ArrayList<>());
         } catch (Exception ignored) {}
         return new BookshelfSnapshot(0, new ArrayList<>());
+    }
+
+    private static ReadingStats parseReadingStats(String json, Gson gson) {
+        try {
+            return gson.fromJson(json, ReadingStats.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static List<BookProgress> buildProgressList(List<BookList> books) {

@@ -42,6 +42,7 @@ import com.thl.reader.dialog.SettingDialog;
 import com.thl.reader.dialog.TtsDialog;
 import com.thl.reader.util.BrightnessUtil;
 import com.thl.reader.util.PageFactory;
+import com.thl.reader.util.ReadingStatsManager;
 import com.thl.reader.view.PageWidget;
 
 import com.thl.reader.db.DB;
@@ -440,11 +441,13 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         if (!isShow) {
             hideSystemUI();
         }
+        ReadingStatsManager.recordStart(this);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        ReadingStatsManager.recordStop(this);
     }
 
     @Override
@@ -724,7 +727,7 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void showEdgeTtsNoticeDialog() {
-        new android.app.AlertDialog.Builder(this)
+        new android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Light_Dialog_Alert)
                 .setTitle("听书提示")
                 .setMessage("在线朗读（Edge TTS）使用微软服务，需要消耗流量，建议在 Wi-Fi 环境下使用。\n\n是否使用在线朗读？")
                 .setPositiveButton("使用 Edge TTS（在线）", (dialog, which) -> {

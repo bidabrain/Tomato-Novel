@@ -300,42 +300,36 @@ public class TtsManager {
         }
     }
 
+    /**
+     * 将章节文本切成不超过 CHUNK_SIZE 的块，并记录每块在书中的绝对字符位置。
+     * 直接使用字符串下标计算偏移，避免 split(\r?\n) 遗漏 \r 导致的累计误差。
+     * 优先在 \n 边界处切分，保留段落语义。
+     */
     private List<String> splitText(String text, long chapterStartPos, List<Long> absPositions) {
         List<String> chunks = new ArrayList<>();
-        String[] paragraphs = text.split("\r?\n", -1);
-        StringBuilder current = new StringBuilder();
-        long currentOffset = 0;
-        long pendingOffset = 0;
+        int len = text.length();
+        int pos = 0;
 
-        for (String para : paragraphs) {
-            if (current.length() + para.length() > CHUNK_SIZE && current.length() > 0) {
-                chunks.add(current.toString());
-                absPositions.add(chapterStartPos + currentOffset);
-                currentOffset = pendingOffset;
-                current = new StringBuilder();
-            }
-            if (para.length() > CHUNK_SIZE) {
-                if (current.length() > 0) {
-                    chunks.add(current.toString());
-                    absPositions.add(chapterStartPos + currentOffset);
-                    currentOffset = pendingOffset;
-                    current = new StringBuilder();
+        while (pos < len) {
+            int end = Math.min(pos + CHUNK_SIZE, len);
+
+            // 如果还没到文末，尝试在最近的 \n 处切分，避免截断句子
+            if (end < len) {
+                int newline = -1;
+                for (int i = end - 1; i > pos; i--) {
+                    if (text.charAt(i) == '\n') {
+                        newline = i + 1;
+                        break;
+                    }
                 }
-                for (int i = 0; i < para.length(); i += CHUNK_SIZE) {
-                    String slice = para.substring(i, Math.min(i + CHUNK_SIZE, para.length()));
-                    chunks.add(slice);
-                    absPositions.add(chapterStartPos + pendingOffset + i);
+                if (newline > pos) {
+                    end = newline;
                 }
-                pendingOffset += para.length() + 1;
-                currentOffset = pendingOffset;
-            } else {
-                current.append(para).append("\n");
-                pendingOffset += para.length() + 1;
             }
-        }
-        if (current.length() > 0) {
-            chunks.add(current.toString());
-            absPositions.add(chapterStartPos + currentOffset);
+
+            chunks.add(text.substring(pos, end));
+            absPositions.add(chapterStartPos + pos);  // 精确字符位置
+            pos = end;
         }
         return chunks;
     }

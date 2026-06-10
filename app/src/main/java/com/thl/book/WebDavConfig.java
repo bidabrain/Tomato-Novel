@@ -26,8 +26,9 @@ public class WebDavConfig {
     }
 
     /** Remote file names written to the WebDAV base directory. */
-    public static final String FILE_BOOKSHELF = "tomato_bookshelf.json";
-    public static final String FILE_PROGRESS  = "tomato_progress.json";
+    public static final String FILE_BOOKSHELF     = "tomato_bookshelf.json";
+    public static final String FILE_PROGRESS      = "tomato_progress.json";
+    public static final String FILE_READING_STATS = "tomato_reading_stats.json";
 
     public static boolean isEnabled(Context ctx) {
         return SharedPreferencesUtils.getBoolean(ctx, KEY_WEBDAV_ENABLED, false);

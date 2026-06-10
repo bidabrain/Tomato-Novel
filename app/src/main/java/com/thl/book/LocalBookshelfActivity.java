@@ -43,6 +43,7 @@ import com.thl.reader.ReadActivity;
 import com.thl.reader.db.BookList;
 import com.thl.reader.filechooser.FileChooserActivity;
 import com.thl.reader.util.FileUtils;
+import com.thl.reader.util.ReadingStatsManager;
 
 import androidx.appcompat.widget.SwitchCompat;
 
@@ -89,6 +90,9 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
     private TextView tvUpdateStatus;
 
+    // 顶部双卡片行
+    private View rowTopCards;
+    private TextView tvWeeklyTime;
     // "上次读到"卡片
     private View cardContinueReading;
     private TextView tvContinueTitle;
@@ -222,6 +226,9 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         tvUpdateStatus = findViewById(R.id.tv_update_status);
 
+        // 顶部双卡片行
+        rowTopCards = findViewById(R.id.row_top_cards);
+        tvWeeklyTime = findViewById(R.id.tv_weekly_time);
         // "上次读到"卡片
         cardContinueReading = findViewById(R.id.card_continue_reading);
         tvContinueTitle = findViewById(R.id.tv_continue_title);
@@ -592,9 +599,21 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         }
     }
 
-    /** 根据 bookLists 更新"上次读到"卡片和书架标题行的显隐 */
+    /** 根据 bookLists 更新顶部双卡片行（本周阅读 + 上次读到）和书架标题行的显隐 */
     private void updateContinueCard() {
         if (cardContinueReading == null) return;
+        boolean hasBooks = !bookLists.isEmpty();
+
+        // 整行显隐
+        if (rowTopCards != null) rowTopCards.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
+
+        // 本周阅读时间
+        if (tvWeeklyTime != null) {
+            long seconds = ReadingStatsManager.getWeeklySeconds(this);
+            tvWeeklyTime.setText(ReadingStatsManager.formatTime(seconds));
+        }
+
+        // 上次读到
         BookList lastRead = null;
         for (BookList b : bookLists) {
             if (b.getLastReadAt() > 0 && b.getBookpath() != null && !b.getBookpath().isEmpty()) {
@@ -619,7 +638,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         } else {
             cardContinueReading.setVisibility(View.GONE);
         }
-        rowShelfHeader.setVisibility(bookLists.isEmpty() ? View.GONE : View.VISIBLE);
+        rowShelfHeader.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
     }
 
     private void setRefreshButtonEnabled(boolean enabled) {
