@@ -406,7 +406,10 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         requestStoragePermissionThenInit();
         // 同步横条状态（可能启动时广播在 receiver 注册前就发出了）
-        showUpdateBanner(UpdateChecker.isRunning(), null, 0, 0);
+        showUpdateBanner(UpdateChecker.isRunning(),
+                UpdateChecker.getCurrentBookName(),
+                UpdateChecker.getCurrentBook(),
+                UpdateChecker.getTotalBooks());
     }
 
     @Override

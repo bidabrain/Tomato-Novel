@@ -32,14 +32,21 @@ public class UpdateChecker {
 
     /** 当前是否有更新检查正在后台运行 */
     private static volatile boolean sIsRunning = false;
+    private static volatile int     sCurrentBook = 0;
+    private static volatile int     sTotalBooks  = 0;
+    private static volatile String  sCurrentBookName = "";
 
-    public static boolean isRunning() {
-        return sIsRunning;
-    }
+    public static boolean isRunning()      { return sIsRunning; }
+    public static int     getCurrentBook() { return sCurrentBook; }
+    public static int     getTotalBooks()  { return sTotalBooks; }
+    public static String  getCurrentBookName() { return sCurrentBookName; }
 
     public static void checkOnLaunch(Context context) {
         if (sIsRunning) return;
         sIsRunning = true;
+        sCurrentBook = 0;
+        sTotalBooks  = 0;
+        sCurrentBookName = "";
         executor.execute(() -> {
             try {
                 List<BookList> allTomato = DB.bookList().findByIsTomato(1);
@@ -61,6 +68,7 @@ public class UpdateChecker {
 
                 // 标记所有书为"更新中…"并刷新书架
                 int total = tomatoBooks.size();
+                sTotalBooks = total;
                 for (BookList book : tomatoBooks) {
                     DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), "更新中…");
                 }
@@ -76,6 +84,8 @@ public class UpdateChecker {
 
                 for (int i = 0; i < tomatoBooks.size(); i++) {
                     BookList book = tomatoBooks.get(i);
+                    sCurrentBook = i + 1;
+                    sCurrentBookName = book.getBookname();
                     // 开始检查前发一次进度（显示书名）
                     context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
                             .putExtra("total_new", 0)
