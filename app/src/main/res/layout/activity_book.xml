@@ -150,6 +150,16 @@
                         android:layout_height="wrap_content"
                         android:visibility="gone" />
 
+                    <!-- 上次同步时间（仅自动同步开启时显示） -->
+                    <TextView
+                        android:id="@+id/tv_sync_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="#A0826A"
+                        android:textSize="11sp"
+                        android:visibility="gone" />
+
                 </LinearLayout>
 
                 <!-- 右半：上次读到（有阅读记录时显示，否则 GONE 让左半展开） -->

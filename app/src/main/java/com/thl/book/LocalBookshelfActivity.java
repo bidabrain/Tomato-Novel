@@ -95,6 +95,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private TextView tvWeeklyTime;   // gone，仅保留 id 兼容性
     private TextView tvWeeklyNumber;
     private TextView tvWeeklyUnit;
+    private TextView tvSyncLabel;
     // "上次读到"卡片
     private View cardContinueReading;
     private TextView tvContinueTitle;
@@ -229,6 +230,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         tvWeeklyTime = findViewById(R.id.tv_weekly_time);
         tvWeeklyNumber = findViewById(R.id.tv_weekly_number);
         tvWeeklyUnit = findViewById(R.id.tv_weekly_unit);
+        tvSyncLabel = findViewById(R.id.tv_sync_label);
         // "上次读到"卡片
         cardContinueReading = findViewById(R.id.card_continue_reading);
         tvContinueTitle = findViewById(R.id.tv_continue_title);
@@ -270,8 +272,10 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         swWebDav.setVisibility(View.VISIBLE);
         swWebDav.setChecked(WebDavConfig.isEnabled(this));
         refreshWebDavSwitchEnabled();
-        swWebDav.setOnCheckedChangeListener((buttonView, isChecked) ->
-                SharedPreferencesUtils.saveBoolean(this, WebDavConfig.KEY_WEBDAV_ENABLED, isChecked));
+        swWebDav.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            SharedPreferencesUtils.saveBoolean(this, WebDavConfig.KEY_WEBDAV_ENABLED, isChecked);
+            refreshSyncLabel();
+        });
     }
 
     /** 如果 WebDAV URL 未配置，锁定（变灰不可点击）同步开关 */
@@ -281,6 +285,34 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         swWebDav.setEnabled(hasUrl);
         swWebDav.setAlpha(hasUrl ? 1f : 0.4f);
         if (!hasUrl) swWebDav.setChecked(false);
+        refreshSyncLabel();
+    }
+
+    /** 根据自动同步是否开启及上次同步时间，刷新本周阅读卡片底部标签 */
+    private void refreshSyncLabel() {
+        if (tvSyncLabel == null) return;
+        if (!WebDavConfig.isEnabled(this)) {
+            tvSyncLabel.setVisibility(View.GONE);
+            return;
+        }
+        long lastSync = WebDavConfig.getLastSyncAt(this);
+        String text;
+        if (lastSync == 0) {
+            text = "同步：从未";
+        } else {
+            long diffMs = System.currentTimeMillis() - lastSync;
+            long minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(diffMs);
+            long hours   = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(diffMs);
+            long days    = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diffMs);
+            String ago;
+            if (minutes < 1)     ago = "刚刚";
+            else if (hours < 1)  ago = minutes + " 分钟前";
+            else if (days < 1)   ago = hours + " 小时前";
+            else                 ago = days + " 天前";
+            text = "同步：" + ago;
+        }
+        tvSyncLabel.setText(text);
+        tvSyncLabel.setVisibility(View.VISIBLE);
     }
 
     private void applyEinkMode(boolean eink) {
@@ -655,6 +687,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             cardContinueReading.setVisibility(View.GONE);
         }
         rowShelfHeader.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
+        refreshSyncLabel();
     }
 
     /** 后台静默修复 coverUrl 为空的番茄书，每次 app 启动只跑一次 */
