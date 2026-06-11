@@ -143,14 +143,19 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         public void onReceive(Context context, Intent intent) {
             int newCount = intent.getIntExtra("total_new", 0);
             boolean isFinished = intent.getBooleanExtra(UpdateChecker.EXTRA_IS_FINISHED, true);
+            int current = intent.getIntExtra(UpdateChecker.EXTRA_CURRENT, 0);
+            int total = intent.getIntExtra(UpdateChecker.EXTRA_TOTAL, 0);
+            String bookName = intent.getStringExtra(UpdateChecker.EXTRA_BOOK_NAME);
             // 立即触发一次轮询刷新
             pollHandler.removeCallbacks(pollRunnable);
             pollHandler.post(pollRunnable);
             if (isFinished) {
-                showUpdateBanner(false);
+                showUpdateBanner(false, null, 0, 0);
                 if (newCount > 0) {
                     Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
                 }
+            } else {
+                showUpdateBanner(true, bookName, current, total);
             }
         }
     };
@@ -281,7 +286,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         adapter.notifyDataSetChanged();
                         updateContinueCard();
                         refreshLayout.finishRefreshing();
-                        showUpdateBanner(true);
+                        showUpdateBanner(true, null, 0, 0);
                         if (!UpdateChecker.isRunning()) {
                             UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
                         }
@@ -386,7 +391,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         // Start update check for Fanqie books
         UpdateChecker.checkOnLaunch(this);
-        showUpdateBanner(true);
+        showUpdateBanner(true, null, 0, 0);
     }
 
     @Override
@@ -401,7 +406,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         requestStoragePermissionThenInit();
         // 同步横条状态（可能启动时广播在 receiver 注册前就发出了）
-        showUpdateBanner(UpdateChecker.isRunning());
+        showUpdateBanner(UpdateChecker.isRunning(), null, 0, 0);
     }
 
     @Override
@@ -667,9 +672,20 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         });
     }
 
-    private void showUpdateBanner(boolean show) {
+    private void showUpdateBanner(boolean show, String bookName, int current, int total) {
         if (tvUpdateStatus == null) return;
         tvUpdateStatus.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) {
+            String text;
+            if (total > 0 && current > 0 && bookName != null && !bookName.isEmpty()) {
+                // 截断书名避免过长
+                String name = bookName.length() > 12 ? bookName.substring(0, 12) + "…" : bookName;
+                text = "正在检查更新 " + current + "/" + total + "《" + name + "》";
+            } else {
+                text = "正在检查更新…";
+            }
+            tvUpdateStatus.setText(text);
+        }
     }
 
     private void requestPermissins(PermissionUtils.OnPermissionListener listener) {

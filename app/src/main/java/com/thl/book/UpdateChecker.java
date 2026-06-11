@@ -23,6 +23,9 @@ public class UpdateChecker {
     public static final String ACTION_UPDATE_DONE = "com.thl.book.UPDATE_DONE";
     /** Extra boolean: true 表示全部检查完毕，false 表示中间进度刷新 */
     public static final String EXTRA_IS_FINISHED = "is_finished";
+    public static final String EXTRA_CURRENT = "current";   // 当前第几本（1-based）
+    public static final String EXTRA_TOTAL   = "total";     // 总本数
+    public static final String EXTRA_BOOK_NAME = "book_name"; // 当前书名
     private static final String TAG = "UpdateChecker";
 
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -57,17 +60,29 @@ public class UpdateChecker {
                 }
 
                 // 标记所有书为"更新中…"并刷新书架
+                int total = tomatoBooks.size();
                 for (BookList book : tomatoBooks) {
                     DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), "更新中…");
                 }
                 context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
                         .putExtra("total_new", 0)
-                        .putExtra(EXTRA_IS_FINISHED, false));
+                        .putExtra(EXTRA_IS_FINISHED, false)
+                        .putExtra(EXTRA_CURRENT, 0)
+                        .putExtra(EXTRA_TOTAL, total)
+                        .putExtra(EXTRA_BOOK_NAME, ""));
 
                 NovelDownloadManager manager = new NovelDownloadManager(context);
                 int totalNew = 0;
 
-                for (BookList book : tomatoBooks) {
+                for (int i = 0; i < tomatoBooks.size(); i++) {
+                    BookList book = tomatoBooks.get(i);
+                    // 开始检查前发一次进度（显示书名）
+                    context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
+                            .putExtra("total_new", 0)
+                            .putExtra(EXTRA_IS_FINISHED, false)
+                            .putExtra(EXTRA_CURRENT, i + 1)
+                            .putExtra(EXTRA_TOTAL, total)
+                            .putExtra(EXTRA_BOOK_NAME, book.getBookname()));
                     String originalMsg = "更新中…".equals(book.getMsg()) ? "" : book.getMsg();
                     try {
                         int newChapters = manager.downloadNewChapters(book);
@@ -85,7 +100,10 @@ public class UpdateChecker {
                     // 每本书完成后刷新一次书架
                     context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
                             .putExtra("total_new", 0)
-                            .putExtra(EXTRA_IS_FINISHED, false));
+                            .putExtra(EXTRA_IS_FINISHED, false)
+                            .putExtra(EXTRA_CURRENT, i + 1)
+                            .putExtra(EXTRA_TOTAL, total)
+                            .putExtra(EXTRA_BOOK_NAME, book.getBookname()));
                 }
 
                 Log.d(TAG, "Update check done. Total new chapters: " + totalNew);
