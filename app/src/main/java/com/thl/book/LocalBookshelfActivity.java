@@ -91,7 +91,9 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
     // 顶部双卡片行
     private View rowTopCards;
-    private TextView tvWeeklyTime;
+    private TextView tvWeeklyTime;   // gone，仅保留 id 兼容性
+    private TextView tvWeeklyNumber;
+    private TextView tvWeeklyUnit;
     // "上次读到"卡片
     private View cardContinueReading;
     private TextView tvContinueTitle;
@@ -222,6 +224,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         // 顶部双卡片行
         rowTopCards = findViewById(R.id.row_top_cards);
         tvWeeklyTime = findViewById(R.id.tv_weekly_time);
+        tvWeeklyNumber = findViewById(R.id.tv_weekly_number);
+        tvWeeklyUnit = findViewById(R.id.tv_weekly_unit);
         // "上次读到"卡片
         cardContinueReading = findViewById(R.id.card_continue_reading);
         tvContinueTitle = findViewById(R.id.tv_continue_title);
@@ -599,9 +603,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         if (rowTopCards != null) rowTopCards.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
 
         // 本周阅读时间
-        if (tvWeeklyTime != null) {
+        if (tvWeeklyNumber != null) {
             long seconds = ReadingStatsManager.getWeeklySeconds(this);
-            tvWeeklyTime.setText(ReadingStatsManager.formatTime(seconds));
+            String[] parts = splitTimeDisplay(seconds);
+            tvWeeklyNumber.setText(parts[0]);
+            tvWeeklyUnit.setText(parts[1]);
         }
 
         // 上次读到
@@ -978,5 +984,20 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         }
                     });
         });
+    }
+
+    /**
+     * 将秒数拆成 [数字, 单位] 两部分，分别用大/小字体显示。
+     * 例：45分 → ["45","分钟"]，2小时30分 → ["2:30","小时"]，2小时 → ["2","小时"]
+     */
+    private static String[] splitTimeDisplay(long totalSeconds) {
+        if (totalSeconds <= 0) return new String[]{"0", "分钟"};
+        long minutes = totalSeconds / 60;
+        if (minutes == 0) return new String[]{"<1", "分钟"};
+        long hours = minutes / 60;
+        long mins  = minutes % 60;
+        if (hours == 0) return new String[]{String.valueOf(minutes), "分钟"};
+        if (mins == 0)  return new String[]{String.valueOf(hours), "小时"};
+        return new String[]{hours + ":" + String.format("%02d", mins), "小时"};
     }
 }
