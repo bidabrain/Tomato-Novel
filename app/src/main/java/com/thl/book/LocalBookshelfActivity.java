@@ -635,6 +635,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         containerBookStore.setVisibility(View.GONE);
         tvTitle.setText("书架");
         ib_more.setVisibility(View.VISIBLE);
+        if (swEink != null) swEink.setVisibility(View.VISIBLE);
+        if (swWebDav != null) swWebDav.setVisibility(View.VISIBLE);
     }
 
     private void showBookStore() {
@@ -642,6 +644,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         containerBookStore.setVisibility(View.VISIBLE);
         tvTitle.setText("书城");
         ib_more.setVisibility(View.GONE);
+        if (swEink != null) swEink.setVisibility(View.GONE);
+        if (swWebDav != null) swWebDav.setVisibility(View.GONE);
 
         if (bookStoreFragment == null) {
             bookStoreFragment = new BookStoreFragment();
