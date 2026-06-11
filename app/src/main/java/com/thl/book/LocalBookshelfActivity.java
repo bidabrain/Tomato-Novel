@@ -80,7 +80,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private SingleAdapter<BookList> adapter;
     private List<BookList> bookLists;
     private View ib_more;
-    private ImageView ib_refresh;
 
     private View containerBookshelf;
     private FrameLayout containerBookStore;
@@ -148,7 +147,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             pollHandler.removeCallbacks(pollRunnable);
             pollHandler.post(pollRunnable);
             if (isFinished) {
-                setRefreshButtonEnabled(true);
                 showUpdateBanner(false);
                 if (newCount > 0) {
                     Toast.makeText(context, "已更新 " + newCount + " 个新章节", Toast.LENGTH_SHORT).show();
@@ -213,16 +211,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         ib_more = findViewById(R.id.ib_more);
         ib_more.setVisibility(View.VISIBLE);
         ib_more.setOnClickListener(this);
-
-        ib_refresh = findViewById(R.id.ib_refresh);
-        ib_refresh.setVisibility(View.VISIBLE);
-        ib_refresh.setOnClickListener(v -> {
-            if (!UpdateChecker.isRunning()) {
-                UpdateChecker.checkOnLaunch(this);
-                setRefreshButtonEnabled(false);
-                showUpdateBanner(true);
-            }
-        });
 
         tvUpdateStatus = findViewById(R.id.tv_update_status);
 
@@ -296,7 +284,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         showUpdateBanner(true);
                         if (!UpdateChecker.isRunning()) {
                             UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
-                            setRefreshButtonEnabled(false);
                         }
                     });
                 });
@@ -413,10 +400,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         }
 
         requestStoragePermissionThenInit();
-        // 同步按钮和横条状态（可能启动时广播在 receiver 注册前就发出了）
-        boolean running = UpdateChecker.isRunning();
-        setRefreshButtonEnabled(!running);
-        showUpdateBanner(running);
+        // 同步横条状态（可能启动时广播在 receiver 注册前就发出了）
+        showUpdateBanner(UpdateChecker.isRunning());
     }
 
     @Override
@@ -580,7 +565,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         containerBookshelf.setVisibility(View.VISIBLE);
         containerBookStore.setVisibility(View.GONE);
         tvTitle.setText("书架");
-        ib_refresh.setVisibility(View.VISIBLE);
         ib_more.setVisibility(View.VISIBLE);
     }
 
@@ -588,7 +572,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         containerBookshelf.setVisibility(View.GONE);
         containerBookStore.setVisibility(View.VISIBLE);
         tvTitle.setText("书城");
-        ib_refresh.setVisibility(View.GONE);
         ib_more.setVisibility(View.GONE);
 
         if (bookStoreFragment == null) {
@@ -639,12 +622,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             cardContinueReading.setVisibility(View.GONE);
         }
         rowShelfHeader.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
-    }
-
-    private void setRefreshButtonEnabled(boolean enabled) {
-        if (ib_refresh == null) return;
-        ib_refresh.setEnabled(enabled);
-        ib_refresh.setAlpha(enabled ? 1f : 0.4f);
     }
 
     /** 后台静默修复 coverUrl 为空的番茄书，每次 app 启动只跑一次 */
