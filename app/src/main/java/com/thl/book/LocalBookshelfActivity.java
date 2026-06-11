@@ -823,7 +823,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 Toast.makeText(this, "再次点击返回确认退出", Toast.LENGTH_SHORT).show();
             } else {
                 finish();
-                System.exit(0);
             }
             return true;
         }
