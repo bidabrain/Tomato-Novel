@@ -60,6 +60,9 @@
         <activity
             android:name=".BookDetailActivity"
             android:screenOrientation="portrait" />
+        <activity
+            android:name=".FanqieImportActivity"
+            android:screenOrientation="portrait" />
 
     </application>
 

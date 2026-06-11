@@ -580,6 +580,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 view.findViewById(R.id.tv_settings).setOnClickListener(this);
                 view.findViewById(R.id.tv_export).setOnClickListener(this);
                 view.findViewById(R.id.tv_import).setOnClickListener(this);
+                view.findViewById(R.id.tv_fanqie_import).setOnClickListener(this);
                 if (popWindow == null) {
                     popWindow = new CustomPopWindow.PopupWindowBuilder(this)
                             .setView(view)
@@ -620,6 +621,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
             case R.id.tv_import:
                 importLauncher.launch("*/*");
+                popWindow.dissmiss();
+                break;
+
+            case R.id.tv_fanqie_import:
+                startActivity(new Intent(this, FanqieImportActivity.class));
                 popWindow.dissmiss();
                 break;
 
