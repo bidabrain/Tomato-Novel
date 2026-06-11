@@ -69,6 +69,7 @@ public class UpdateChecker {
                 }
                 if (tomatoBooks.isEmpty()) {
                     context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
+                            .setPackage(context.getPackageName())
                             .putExtra("total_new", 0)
                             .putExtra(EXTRA_IS_FINISHED, true));
                     return;
@@ -153,6 +154,7 @@ public class UpdateChecker {
 
                 Log.d(TAG, "Update done. Total new: " + totalNew);
                 context.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
+                        .setPackage(context.getPackageName())
                         .putExtra("total_new", totalNew)
                         .putExtra(EXTRA_IS_FINISHED, true));
             } finally {
@@ -162,7 +164,9 @@ public class UpdateChecker {
     }
 
     private static void broadcast(Context ctx, boolean finished, int cur, int total, String name) {
+        Log.d(TAG, "broadcast → finished=" + finished + " cur=" + cur + "/" + total + " name='" + name + "'");
         ctx.sendBroadcast(new Intent(ACTION_UPDATE_DONE)
+                .setPackage(ctx.getPackageName())
                 .putExtra("total_new", 0)
                 .putExtra(EXTRA_IS_FINISHED, finished)
                 .putExtra(EXTRA_CURRENT, cur)

@@ -148,6 +148,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             int current = intent.getIntExtra(UpdateChecker.EXTRA_CURRENT, 0);
             int total = intent.getIntExtra(UpdateChecker.EXTRA_TOTAL, 0);
             String bookName = intent.getStringExtra(UpdateChecker.EXTRA_BOOK_NAME);
+            android.util.Log.d("TomUpdateDbg", "onReceive → isFinished=" + isFinished
+                    + " cur=" + current + "/" + total + " name='" + bookName + "'");
             // 立即触发一次轮询刷新
             pollHandler.removeCallbacks(pollRunnable);
             pollHandler.post(pollRunnable);
@@ -282,6 +284,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             @Override
             public void onRefresh(final TwinklingRefreshLayout refreshLayout) {
                 // 立即显示横条并启动检查，不等待书单重载完成
+                android.util.Log.d("TomUpdateDbg", "onRefresh → isRunning=" + UpdateChecker.isRunning());
                 showUpdateBanner(true, null, 0, 0);
                 if (!UpdateChecker.isRunning()) {
                     UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
@@ -695,6 +698,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             } else {
                 text = "正在检查更新…";
             }
+            android.util.Log.d("TomUpdateDbg", "showBanner → show=" + show
+                    + " name='" + bookName + "' cur=" + current + "/" + total + " → '" + text + "'");
             tvUpdateStatus.setText(text);
         }
     }
@@ -906,6 +911,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                                         NotifyHelper.send(appCtx, "下载完成",
                                                 "《" + bookName + "》已添加到书架");
                                         appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                                .setPackage(appCtx.getPackageName())
                                                 .putExtra("total_new", 0));
                                     }
                                     @Override public void onError(String msg) {
@@ -914,6 +920,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                                         NotifyHelper.send(appCtx, "下载失败",
                                                 "《" + bookName + "》" + msg);
                                         appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                                .setPackage(appCtx.getPackageName())
                                                 .putExtra("total_new", 0));
                                     }
                                 });
@@ -939,7 +946,9 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             final int finalAdded = added;
             final int finalSkipped = skipped;
             if (finalAdded > 0) WebDavConfig.markBookshelfModified(this);
-            sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE).putExtra("total_new", 0));
+            sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                    .setPackage(getPackageName())
+                    .putExtra("total_new", 0));
             runOnUiThread(() -> Toast.makeText(this,
                     "导入完成：新增 " + finalAdded + " 本，跳过 " + finalSkipped + " 本",
                     Toast.LENGTH_SHORT).show());
@@ -957,7 +966,9 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         downloadExecutor.execute(() -> {
             DB.bookList().updateDownloadResult(
                     book.getTomatoBookId(), book.getBookname(), "", "下载中…", null, book.getCoverUrl());
-            sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE).putExtra("total_new", 0));
+            sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                    .setPackage(getPackageName())
+                    .putExtra("total_new", 0));
             runOnUiThread(() -> Toast.makeText(this,
                     "《" + book.getBookname() + "》重新下载中，完成后通知", Toast.LENGTH_SHORT).show());
 
@@ -972,6 +983,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                             NotifyHelper.send(appCtx, "下载完成",
                                     "《" + book.getBookname() + "》已添加到书架");
                             appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                    .setPackage(appCtx.getPackageName())
                                     .putExtra("total_new", 0));
                         }
 
@@ -982,6 +994,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                             NotifyHelper.send(appCtx, "下载失败",
                                     "《" + book.getBookname() + "》" + message);
                             appCtx.sendBroadcast(new Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                    .setPackage(appCtx.getPackageName())
                                     .putExtra("total_new", 0));
                         }
                     });
