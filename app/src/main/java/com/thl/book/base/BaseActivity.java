@@ -1,6 +1,7 @@
 package com.thl.book.base;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import androidx.annotation.Nullable;
@@ -8,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.thl.book.R;
 
 /**
@@ -20,9 +22,17 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        // 状态栏/导航栏透明，内容延伸其后
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(Color.TRANSPARENT);
         super.onCreate(savedInstanceState);
         mContext = this;
         setContentView(initLayout());
+        // 白色 title bar → 状态栏图标用深色
+        WindowInsetsControllerCompat ctrl =
+                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        ctrl.setAppearanceLightStatusBars(true);
+        ctrl.setAppearanceLightNavigationBars(true);
         applyEdgeToEdgeInsets();
         initView();
         initData(savedInstanceState);
