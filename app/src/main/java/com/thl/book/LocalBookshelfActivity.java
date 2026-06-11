@@ -321,6 +321,12 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         if (root != null) {
             root.setBackgroundColor(eink ? 0xFFFFFFFF : getResources().getColor(R.color.bg_activity));
         }
+        // 本周阅读卡片样式
+        View cardWeeklyTime = findViewById(R.id.card_weekly_time);
+        if (cardWeeklyTime != null) {
+            cardWeeklyTime.setBackgroundResource(
+                    eink ? R.drawable.bg_continue_card_eink : R.drawable.bg_continue_card);
+        }
         // 上次读到卡片样式
         if (cardContinueReading != null) {
             cardContinueReading.setBackgroundResource(
