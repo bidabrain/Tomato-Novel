@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/title_bar"
     android:layout_width="match_parent"
-    android:layout_height="56dp"
+    android:layout_height="wrap_content"
     android:background="#FFFFFF"
     android:elevation="0dp">
 
     <ImageButton
         android:id="@+id/ib_back"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_height="56dp"
         android:layout_centerVertical="true"
         android:background="@drawable/bg_item_sel"
         android:contentDescription="@string/app_name"
@@ -22,7 +23,7 @@
     <TextView
         android:id="@+id/tv_title"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_height="56dp"
         android:layout_centerInParent="true"
         android:gravity="center"
         android:text="番茄阅读"
@@ -33,7 +34,7 @@
     <ImageButton
         android:id="@+id/ib_more"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_height="56dp"
         android:layout_alignParentRight="true"
         android:layout_centerVertical="true"
         android:background="@drawable/bg_item_sel"
@@ -49,7 +50,7 @@
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/sw_eink"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_height="56dp"
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
         android:paddingLeft="12dp"
