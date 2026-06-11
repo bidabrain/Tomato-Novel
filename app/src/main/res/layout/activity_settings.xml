@@ -226,15 +226,17 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="WebDAV 同步"
+                    android:text="WebDAV 同步服务器"
                     android:textColor="#111111"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
-                <Switch
-                    android:id="@+id/switch_webdav"
+                <TextView
+                    android:id="@+id/tv_last_sync"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:textColor="#AAAAAA"
+                    android:textSize="11sp" />
 
             </LinearLayout>
 
@@ -243,7 +245,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:layout_marginBottom="12dp"
-                android:text="开启后可通过菜单手动同步书架与阅读进度到 WebDAV 服务器"
+                android:text="同步开关在主界面右上角，服务器为空时开关锁定"
                 android:textColor="#888888"
                 android:textSize="12sp" />
 

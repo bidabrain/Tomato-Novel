@@ -4,7 +4,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.concurrent.TimeUnit;
 
 import com.thl.book.base.BaseActivity;
 
@@ -12,10 +15,8 @@ public class SettingsActivity extends BaseActivity {
 
     private Switch switchDownloader;
     private Switch switchStore;
-    private Switch switchWebDav;
     private View groupDownloader;
     private View groupStore;
-    private View groupWebDav;
     private EditText etDownloaderUrl;
     private EditText etDownloaderPassword;
     private EditText etStoreUrl;
@@ -34,10 +35,8 @@ public class SettingsActivity extends BaseActivity {
 
         switchDownloader = findViewById(R.id.switch_downloader);
         switchStore      = findViewById(R.id.switch_store);
-        switchWebDav     = findViewById(R.id.switch_webdav);
         groupDownloader  = findViewById(R.id.group_downloader);
         groupStore       = findViewById(R.id.group_store);
-        groupWebDav      = findViewById(R.id.group_webdav);
         etDownloaderUrl      = findViewById(R.id.et_downloader_url);
         etDownloaderPassword = findViewById(R.id.et_downloader_password);
         etStoreUrl           = findViewById(R.id.et_store_url);
@@ -48,7 +47,7 @@ public class SettingsActivity extends BaseActivity {
         // Restore saved state
         switchDownloader.setChecked(ServerConfig.isCustomDownloaderEnabled(this));
         switchStore.setChecked(ServerConfig.isCustomStoreEnabled(this));
-        switchWebDav.setChecked(WebDavConfig.isEnabled(this));
+        refreshLastSyncLabel();
         etDownloaderUrl.setText(
                 SharedPreferencesUtils.getString(this, ServerConfig.KEY_CUSTOM_DOWNLOADER_URL, ""));
         etDownloaderPassword.setText(
@@ -65,14 +64,11 @@ public class SettingsActivity extends BaseActivity {
         // Apply initial enabled state to input groups
         setGroupEnabled(groupDownloader, switchDownloader.isChecked());
         setGroupEnabled(groupStore, switchStore.isChecked());
-        setGroupEnabled(groupWebDav, switchWebDav.isChecked());
 
         switchDownloader.setOnCheckedChangeListener((btn, checked) ->
                 setGroupEnabled(groupDownloader, checked));
         switchStore.setOnCheckedChangeListener((btn, checked) ->
                 setGroupEnabled(groupStore, checked));
-        switchWebDav.setOnCheckedChangeListener((btn, checked) ->
-                setGroupEnabled(groupWebDav, checked));
 
         findViewById(R.id.btn_save).setOnClickListener(v -> save());
     }
@@ -96,8 +92,6 @@ public class SettingsActivity extends BaseActivity {
                 ServerConfig.KEY_CUSTOM_STORE_URL,
                 etStoreUrl.getText().toString().trim());
 
-        SharedPreferencesUtils.saveBoolean(this,
-                WebDavConfig.KEY_WEBDAV_ENABLED, switchWebDav.isChecked());
         SharedPreferencesUtils.saveString(this,
                 WebDavConfig.KEY_WEBDAV_URL,
                 etWebDavUrl.getText().toString().trim());
@@ -113,6 +107,26 @@ public class SettingsActivity extends BaseActivity {
 
         Toast.makeText(this, "已保存", Toast.LENGTH_SHORT).show();
         finish();
+    }
+
+    private void refreshLastSyncLabel() {
+        TextView tv = findViewById(R.id.tv_last_sync);
+        if (tv == null) return;
+        long lastSync = WebDavConfig.getLastSyncAt(this);
+        if (lastSync == 0) {
+            tv.setText("从未同步");
+            return;
+        }
+        long diffMs = System.currentTimeMillis() - lastSync;
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(diffMs);
+        long hours   = TimeUnit.MILLISECONDS.toHours(diffMs);
+        long days    = TimeUnit.MILLISECONDS.toDays(diffMs);
+        String label;
+        if (minutes < 1)       label = "刚刚同步";
+        else if (hours < 1)    label = minutes + " 分钟前";
+        else if (days < 1)     label = hours + " 小时前";
+        else                   label = days + " 天前";
+        tv.setText("上次同步：" + label);
     }
 
     /** Grey out / re-enable all child views inside a group layout. */

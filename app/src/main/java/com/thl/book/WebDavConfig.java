@@ -25,6 +25,17 @@ public class WebDavConfig {
                 System.currentTimeMillis());
     }
 
+    /** 上次自动同步成功的时间戳（ms）。0 表示从未同步过。 */
+    public static final String KEY_LAST_SYNC_AT = "webdav_last_sync_at";
+
+    public static void saveLastSyncAt(Context ctx) {
+        SharedPreferencesUtils.saveLong(ctx, KEY_LAST_SYNC_AT, System.currentTimeMillis());
+    }
+
+    public static long getLastSyncAt(Context ctx) {
+        return SharedPreferencesUtils.getLong(ctx, KEY_LAST_SYNC_AT, 0L);
+    }
+
     /** Remote file names written to the WebDAV base directory. */
     public static final String FILE_BOOKSHELF     = "tomato_bookshelf.json";
     public static final String FILE_PROGRESS      = "tomato_progress.json";
