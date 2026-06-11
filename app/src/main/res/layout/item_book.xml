@@ -104,13 +104,12 @@
                 android:textSize="10sp" />
         </LinearLayout>
 
-        <!-- 删除模式遮罩（覆盖全卡片） -->
+        <!-- 删除模式遮罩（覆盖封面区域） -->
         <LinearLayout
             android:id="@+id/llt_del"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="true"
+            android:layout_height="140dp"
+            android:layout_alignTop="@id/iv_cover"
             android:background="#AA000000"
             android:gravity="center"
             android:orientation="vertical"
