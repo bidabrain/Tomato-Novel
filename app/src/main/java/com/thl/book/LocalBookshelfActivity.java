@@ -86,6 +86,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private TextView tvTitle;
     private BookStoreFragment bookStoreFragment;
     private SwitchCompat swEink;
+    private SwitchCompat swWebDav;
 
     private TextView tvUpdateStatus;
 
@@ -263,6 +264,23 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 bookStoreFragment.onEinkModeChanged();
             }
         });
+
+        // WebDAV 同步开关
+        swWebDav = findViewById(R.id.sw_webdav);
+        swWebDav.setVisibility(View.VISIBLE);
+        swWebDav.setChecked(WebDavConfig.isEnabled(this));
+        refreshWebDavSwitchEnabled();
+        swWebDav.setOnCheckedChangeListener((buttonView, isChecked) ->
+                SharedPreferencesUtils.saveBoolean(this, WebDavConfig.KEY_WEBDAV_ENABLED, isChecked));
+    }
+
+    /** 如果 WebDAV URL 未配置，锁定（变灰不可点击）同步开关 */
+    private void refreshWebDavSwitchEnabled() {
+        if (swWebDav == null) return;
+        boolean hasUrl = !WebDavConfig.getUrl(this).isEmpty();
+        swWebDav.setEnabled(hasUrl);
+        swWebDav.setAlpha(hasUrl ? 1f : 0.4f);
+        if (!hasUrl) swWebDav.setChecked(false);
     }
 
     private void applyEinkMode(boolean eink) {
@@ -414,6 +432,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         }
 
         requestStoragePermissionThenInit();
+        // 用户可能刚从设置页面回来，URL 可能变化，刷新开关状态
+        refreshWebDavSwitchEnabled();
         // 同步横条状态（可能启动时广播在 receiver 注册前就发出了）
         showUpdateBanner(UpdateChecker.isRunning(),
                 UpdateChecker.getCurrentBookName(),
@@ -522,7 +542,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 view.findViewById(R.id.tv_settings).setOnClickListener(this);
                 view.findViewById(R.id.tv_export).setOnClickListener(this);
                 view.findViewById(R.id.tv_import).setOnClickListener(this);
-                view.findViewById(R.id.tv_webdav_sync).setOnClickListener(this);
                 if (popWindow == null) {
                     popWindow = new CustomPopWindow.PopupWindowBuilder(this)
                             .setView(view)
@@ -555,11 +574,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 popWindow.dissmiss();
                 break;
 
-
-            case R.id.tv_webdav_sync:
-                syncWebDav();
-                popWindow.dissmiss();
-                break;
 
             case R.id.tv_export:
                 exportBookshelf();
@@ -781,31 +795,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             return true;
         }
         return super.onKeyDown(keyCode, event);
-    }
-
-    // ──────────── WebDAV 同步 ────────────
-
-    private void syncWebDav() {
-        if (!WebDavConfig.isEnabled(this)) {
-            Toast.makeText(this, "请先在「服务器设置」中开启并配置 WebDAV", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        Toast.makeText(this, "正在同步…", Toast.LENGTH_SHORT).show();
-        executor.execute(() -> WebDavSyncManager.sync(this, new WebDavSyncManager.SyncCallback() {
-            @Override
-            public void onSuccess(String message) {
-                runOnUiThread(() -> {
-                    Toast.makeText(LocalBookshelfActivity.this, message, Toast.LENGTH_LONG).show();
-                    initFirstData();
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                runOnUiThread(() ->
-                        Toast.makeText(LocalBookshelfActivity.this, error, Toast.LENGTH_LONG).show());
-            }
-        }));
     }
 
     // ──────────── 导出书架 ────────────
