@@ -281,6 +281,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         refreshLayout.setOnRefreshListener(new RefreshListenerAdapter() {
             @Override
             public void onRefresh(final TwinklingRefreshLayout refreshLayout) {
+                // 立即显示横条并启动检查，不等待书单重载完成
+                showUpdateBanner(true, null, 0, 0);
+                if (!UpdateChecker.isRunning()) {
+                    UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
+                }
                 executor.execute(() -> {
                     List<BookList> books = getBooks();
                     runOnUiThread(() -> {
@@ -290,10 +295,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         adapter.notifyDataSetChanged();
                         updateContinueCard();
                         refreshLayout.finishRefreshing();
-                        showUpdateBanner(true, null, 0, 0);
-                        if (!UpdateChecker.isRunning()) {
-                            UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
-                        }
+                        // 不重置横条 — 由 BroadcastReceiver 驱动进度更新
                     });
                 });
             }
