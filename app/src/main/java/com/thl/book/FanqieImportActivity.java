@@ -66,6 +66,8 @@ public class FanqieImportActivity extends BaseActivity {
     private LoginState loginState = LoginState.UNKNOWN;
     private boolean importing = false;
     private boolean loggedIn = false;
+    // React 页面加载时自动捕获的书架数据（含 a_bogus，可直接使用）
+    private volatile List<BookEntry> cachedBooks = null;
 
     @Override
     protected int initLayout() {
@@ -138,6 +140,18 @@ public class FanqieImportActivity extends BaseActivity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+                return interceptNavigation(view, request.getUrl().toString());
+            }
+
+            @Override
+            public android.webkit.WebResourceResponse shouldInterceptRequest(
+                    WebView view, android.webkit.WebResourceRequest request) {
+                // 仅拦截书架主页（去掉 X-Requested-With），其余请求全部放行
+                return interceptBookshelfPage(request);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 if (url == null) return;
                 Log.d(TAG, "pageFinished: " + url + "  state=" + loginState);
@@ -176,11 +190,183 @@ public class FanqieImportActivity extends BaseActivity {
 
     @Override
     protected void initData(Bundle savedInstanceState) {
+        // 清除 ByteDance 移动端识别 Cookie，防止服务器加 force_mobile=1
+        clearMobileCookies();
         webView.loadUrl(URL_SHELF);
         tvStatus.setText("正在检测登录状态…");
     }
 
+    /**
+     * 拦截书架主页请求，用 OkHttp 代发（不含 X-Requested-With 和设备指纹 Cookie），
+     * 让服务器以为是真实桌面浏览器，返回桌面版 HTML（无 force_mobile）。
+     */
+    private android.webkit.WebResourceResponse interceptBookshelfPage(
+            android.webkit.WebResourceRequest request) {
+        String url = request.getUrl().toString();
+        // 只拦截书架主页，不拦截 API / JS / CSS 等子资源
+        if (!url.equals("https://fanqienovel.com/bookshelf") &&
+            !url.equals("https://fanqienovel.com/bookshelf?force_mobile=1")) return null;
+        if (request.getRequestHeaders().containsKey("Sec-Fetch-Dest") &&
+            !"document".equals(request.getRequestHeaders().get("Sec-Fetch-Dest"))) return null;
+
+        try {
+            String allCookies = CookieManager.getInstance().getCookie("https://fanqienovel.com");
+            // 去掉设备指纹 Cookie，只保留会话认证 Cookie
+            String cleanCookies = stripMobileCookies(allCookies);
+            Log.d(TAG, "interceptBookshelfPage url=" + url + " cleanCookies=" + cleanCookies.substring(0, Math.min(100, cleanCookies.length())));
+
+            okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
+                    .followRedirects(true)
+                    .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                    .build();
+            okhttp3.Request req = new okhttp3.Request.Builder()
+                    .url("https://fanqienovel.com/bookshelf")  // 始终请求干净 URL
+                    .header("Cookie", cleanCookies)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                    .header("Accept-Language", "zh-CN,zh;q=0.9")
+                    .header("Sec-Fetch-Dest", "document")
+                    .header("Sec-Fetch-Mode", "navigate")
+                    .header("Sec-Fetch-Site", "none")
+                    .header("Upgrade-Insecure-Requests", "1")
+                    // 故意不发 X-Requested-With，避免被识别为 WebView
+                    .build();
+            okhttp3.Response resp = client.newCall(req).execute();
+            Log.d(TAG, "interceptBookshelfPage http=" + resp.code() + " finalUrl=" + resp.request().url());
+            if (!resp.isSuccessful() || resp.body() == null) return null;
+            byte[] rawBytes = resp.body().bytes();
+            String ct = resp.header("Content-Type", "text/html; charset=utf-8");
+            // 拆分 mimeType 和 charset（WebResourceResponse 需要分开传）
+            String mimeType = "text/html";
+            String charset  = "utf-8";
+            if (ct != null && ct.contains(";")) {
+                mimeType = ct.substring(0, ct.indexOf(";")).trim();
+                if (ct.contains("charset="))
+                    charset = ct.substring(ct.indexOf("charset=") + 8).trim();
+            } else if (ct != null) {
+                mimeType = ct.trim();
+            }
+            // 在 <head> 内最前面注入 fetch/XHR 拦截脚本，
+            // 确保在 React 代码执行之前就已就位，能捕获含 a_bogus 的 API 响应
+            String html = new String(rawBytes, java.nio.charset.StandardCharsets.UTF_8);
+            String injectedScript = "<script>" + buildFetchInterceptorJs() + "</script>";
+            // 优先注入到 <head>；如果没有 <head> 则注入到 <html> 或文档最前面
+            if (html.contains("<head>")) {
+                html = html.replace("<head>", "<head>" + injectedScript);
+            } else if (html.contains("<HEAD>")) {
+                html = html.replace("<HEAD>", "<HEAD>" + injectedScript);
+            } else {
+                html = injectedScript + html;
+            }
+            byte[] bytes = html.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            Log.d(TAG, "interceptBookshelfPage bodyLen=" + bytes.length + " mime=" + mimeType + " (injected interceptor)");
+            return new android.webkit.WebResourceResponse(mimeType, charset,
+                    new java.io.ByteArrayInputStream(bytes));
+        } catch (Exception e) {
+            Log.e(TAG, "interceptBookshelfPage error", e);
+            return null;
+        }
+    }
+
+    /**
+     * 构建注入到 HTML <head> 的 fetch/XHR 拦截脚本。
+     * 此脚本在 React 代码执行前已就绪，可捕获 React 发出的含 a_bogus 的 API 响应，
+     * 通过 JavascriptInterface 传回 Android。
+     */
+    private String buildFetchInterceptorJs() {
+        return
+            "(function(){" +
+            "if(window.__tomatoInterceptorInstalled)return;" +
+            "window.__tomatoInterceptorInstalled=true;" +
+            "window.__apiCaptured=false;" +
+            // --- fetch 拦截 ---
+            "var _f=window.fetch;" +
+            "window.fetch=function(i,o){" +
+            "  var u=typeof i==='string'?i:(i&&i.url?i.url:'');" +
+            "  var p=_f.apply(this,arguments);" +
+            "  if(u&&(u.indexOf('/api/bookshelf')!==-1||u.indexOf('bookshelf')!==-1)&&!window.__apiCaptured){" +
+            "    p.then(function(r){r.clone().text().then(function(t){" +
+            "      if(t&&t.indexOf('bookId')!==-1&&t.indexOf('{')===0&&!window.__apiCaptured){" +
+            "        window.__apiCaptured=true;" +
+            "        try{Android.onApiResponse(u+'|fetched',t);}catch(e){}" +
+            "      }" +
+            "    });}).catch(function(){});" +
+            "  }" +
+            "  return p;" +
+            "};" +
+            // --- XHR 拦截 ---
+            "var _op=XMLHttpRequest.prototype.open,_se=XMLHttpRequest.prototype.send;" +
+            "XMLHttpRequest.prototype.open=function(m,u){this._tUrl=u;return _op.apply(this,arguments);};" +
+            "XMLHttpRequest.prototype.send=function(){" +
+            "  var s=this,u=s._tUrl||'';" +
+            "  if(u&&(u.indexOf('/api/bookshelf')!==-1||u.indexOf('bookshelf')!==-1)&&!window.__apiCaptured){" +
+            "    s.addEventListener('load',function(){" +
+            "      var t=s.responseText;" +
+            "      if(t&&t.indexOf('bookId')!==-1&&t.indexOf('{')===0&&!window.__apiCaptured){" +
+            "        window.__apiCaptured=true;" +
+            "        try{Android.onApiResponse(u+'|xhr',t);}catch(e){}" +
+            "      }" +
+            "    });" +
+            "  }" +
+            "  return _se.apply(this,arguments);" +
+            "};" +
+            "})();";
+    }
+
+    /** 从 Cookie 字符串中去掉移动端设备指纹相关的条目 */
+    private String stripMobileCookies(String cookies) {
+        if (cookies == null) return "";
+        String[] skipNames = {"odin_tt", "ttwid", "s_v_web_id", "x-web-secsdk-uid"};
+        StringBuilder sb = new StringBuilder();
+        for (String part : cookies.split(";")) {
+            String trimmed = part.trim();
+            boolean skip = false;
+            for (String name : skipNames) {
+                if (trimmed.startsWith(name + "=")) { skip = true; break; }
+            }
+            if (!skip) {
+                if (sb.length() > 0) sb.append("; ");
+                sb.append(trimmed);
+            }
+        }
+        return sb.toString();
+    }
+
+    /** 删除 ByteDance 设备指纹 Cookie，让服务器默认返回桌面版页面 */
+    private void clearMobileCookies() {
+        String[] mobileCookies = {
+            "s_v_web_id", "x-web-secsdk-uid", "odin_tt", "ttwid"
+        };
+        CookieManager cm = CookieManager.getInstance();
+        for (String name : mobileCookies) {
+            // 设置 Max-Age=0 / Expires 过去时间来删除该 Cookie
+            cm.setCookie("https://fanqienovel.com",
+                name + "=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+            cm.setCookie("https://www.fanqienovel.com",
+                name + "=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+        }
+        cm.flush();
+        Log.d(TAG, "cleared mobile cookies");
+    }
+
     // ── 工具方法 ──────────────────────────────────────────────────────────────
+
+    /**
+     * 拦截 WebView 导航：
+     * 阻止跳转到作家中心（/main/writer/author 等），重定向回书架。
+     * 返回 true = 拦截，false = 正常加载。
+     */
+    private boolean interceptNavigation(WebView view, String url) {
+        if (url == null) return false;
+        // 阻止跳转到作家中心（登录页除外）
+        if (url.contains("/main/writer/") && !url.contains("login")) {
+            Log.d(TAG, "blocked writer redirect → back to bookshelf");
+            view.loadUrl(URL_SHELF);
+            return true;
+        }
+        return false;
+    }
 
     private void injectViewportScale(WebView view) {
         view.evaluateJavascript(
@@ -215,6 +401,13 @@ public class FanqieImportActivity extends BaseActivity {
         btnAction.setVisibility(View.VISIBLE);
         btnAction.setText("提取书架");
         btnAction.setEnabled(true);
+
+        // 打印全部 Cookie，用于诊断 force_mobile 来源
+        String allCookies = CookieManager.getInstance().getCookie("https://fanqienovel.com");
+        if (allCookies != null) {
+            int len = allCookies.length();
+            Log.d(TAG, "ALL cookies (len=" + len + "): " + allCookies);
+        }
     }
 
     /**
@@ -222,60 +415,27 @@ public class FanqieImportActivity extends BaseActivity {
      * （未登录时 URL 仍是 /bookshelf，但页面显示登录引导）
      */
     private void verifyLoginState(WebView view) {
-        handler.postDelayed(() -> {
-            if (isDestroyed() || isFinishing()) return;
-            view.evaluateJavascript(
-                "(function(){" +
-                "  var body=document.body?document.body.innerText:'';" +
-                "  var hints=['请先登录','立即登录','登录后查看','去登录','登录/注册','扫码登录'];" +
-                "  for(var i=0;i<hints.length;i++){" +
-                "    if(body.indexOf(hints[i])!==-1) return 'no';" +
-                "  }" +
-                "  var els=document.querySelectorAll('a,button');" +
-                "  for(var j=0;j<els.length;j++){" +
-                "    var t=els[j].innerText.trim();" +
-                "    if(t==='登录'||t==='立即登录'||t==='去登录') return 'no';" +
-                "  }" +
-                "  try{" +
-                "    var nd=window.__NEXT_DATA__,s=nd?JSON.stringify(nd):'';" +
-                "    if(s.indexOf('\"isLogin\":false')!==-1) return 'no';" +
-                "    if(s.indexOf('\"isLogin\":true')!==-1||" +
-                "       s.indexOf('\"userId\":')!==-1||" +
-                "       s.indexOf('\"userInfo\":')!==-1) return 'yes';" +
-                "  }catch(e){}" +
-                "  return 'unknown';" +
-                "})();",
-                raw -> {
-                    String r = raw != null ? raw.replace("\"","").trim() : "unknown";
-                    Log.d(TAG, "login check: " + r);
-                    if ("yes".equals(r)) {
-                        loginState = LoginState.LOGGED_IN;
-                        loggedIn = true;
-                        setLoggedInUi();
-                    } else if ("no".equals(r)) {
-                        goToLogin();
-                    } else {
-                        // unknown：React 未渲染（force_mobile 等情况）
-                        // 用 body 长度辅助判断：< 8000 字节说明空壳，视为未登录
-                        view.evaluateJavascript(
-                            "document.body?document.body.innerHTML.length:0;",
-                            lenRaw -> {
-                                int len = 0;
-                                try { len = Integer.parseInt(
-                                        lenRaw != null ? lenRaw.trim() : "0"); }
-                                catch (NumberFormatException ignored) {}
-                                Log.d(TAG, "body len=" + len);
-                                if (len > 8000) {
-                                    loginState = LoginState.LOGGED_IN;
-                                    loggedIn = true;
-                                    setLoggedInUi();
-                                } else {
-                                    goToLogin();
-                                }
-                            });
-                    }
-                });
-        }, 1500);
+        // 用 Cookie 判断是否已登录：session_id 或 user_id 类 Cookie 存在即视为已登录
+        // 比检测 DOM 更可靠，不受 React 渲染时机和 force_mobile 影响
+        String cookies = CookieManager.getInstance().getCookie("https://fanqienovel.com");
+        Log.d(TAG, "verifyLoginState cookies: " +
+                (cookies != null ? cookies.substring(0, Math.min(200, cookies.length())) : "null"));
+
+        if (cookies != null && (
+                cookies.contains("novel_web_id=") ||
+                cookies.contains("sessionid=") ||
+                cookies.contains("sid_ucp_v1=") ||
+                cookies.contains("uid_tt=") ||
+                cookies.contains("passport_uid=") ||
+                cookies.contains("login_time="))) {
+            Log.d(TAG, "login check: yes (cookie)");
+            loginState = LoginState.LOGGED_IN;
+            loggedIn = true;
+            setLoggedInUi();
+        } else {
+            Log.d(TAG, "login check: no (no session cookie)");
+            goToLogin();
+        }
     }
 
     // ── 提取书架 ──────────────────────────────────────────────────────────────
@@ -286,10 +446,177 @@ public class FanqieImportActivity extends BaseActivity {
         tvStatus.setText("正在读取书架，请稍候…");
         progressBar.setVisibility(View.VISIBLE);
 
-        // 安装拦截 WebViewClient，然后重新加载书架页
-        // 由 JS fetch/XHR 拦截器捕获书架 API 响应，通过 JsBridge 传回 Android
-        setupInterceptingClient();
-        webView.loadUrl(URL_SHELF);
+        // 优先使用页面加载时自动捕获的含 a_bogus 数据
+        if (cachedBooks != null && !cachedBooks.isEmpty()) {
+            List<BookEntry> books = cachedBooks;
+            cachedBooks = null;
+            executor.execute(() -> startImport(books));
+            return;
+        }
+
+        // 回退：直接从 WebView 已渲染的 DOM 中提取书籍信息
+        // 书架页每本书都有 /page/{bookId} 链接，可以直接读取 bookId 和标题
+        extractBooksFromDom();
+    }
+
+    private void extractBooksFromDom() {
+        // 用 evaluateJavascript 回调直接拿结果，避免 JavascriptInterface 的异步问题
+        // 通过 React fiber 读取书卡 props：card 往上一层是 BookCard 组件，
+        // 其 memoizedProps 中有 book / bookDetail 对象，包含 bookId、bookName 等
+        String js =
+            "(function(){" +
+            "try{" +
+            "  var cards=document.querySelectorAll('.book-card');" +
+            "  var results=[];" +
+            "  var seen={};" +
+            "  for(var i=0;i<cards.length;i++){" +
+            "    var el=cards[i];" +
+            "    var fk=null;" +
+            "    for(var k in el){if(k.indexOf('__react')===0){fk=k;break;}}" +
+            "    if(!fk)continue;" +
+            // L0 = div.book-card，L1 = BookCard 组件（含 book prop）
+            "    var fiberL1=el[fk].return;" +
+            "    if(!fiberL1)continue;" +
+            "    var mp=fiberL1.memoizedProps||{};" +
+            // book 是书籍数据对象，bookDetail 是补充信息
+            "    var bk=mp.book||{};" +
+            "    var bd=mp.bookDetail||{};" +
+            "    var bookId=String(bk.bookId||bk.book_id||bd.bookId||bd.book_id||'');" +
+            "    if(!bookId||bookId==='undefined'||seen[bookId])continue;" +
+            "    seen[bookId]=true;" +
+            "    var title=bk.bookName||bk.book_name||bd.bookName||bd.book_name||'';" +
+            "    var author=bk.author||bk.authorName||bd.author||bd.authorName||'';" +
+            "    var cover=bk.coverUrl||bk.thumb_url||bd.coverUrl||bd.thumb_url||'';" +
+            // DOM 兜底：从 .book-title 读标题，从 img 读封面
+            "    if(!title){var td=el.querySelector('.book-title');if(td)title=td.textContent.trim();}" +
+            "    if(!cover){var img=el.querySelector('img');if(img){cover=img.src||'';if(!title)title=img.alt||'';}}" +
+            "    results.push({bookId:bookId,title:title,coverUrl:cover,author:author});" +
+            "  }" +
+            "  var diag='cards='+cards.length+' found='+results.length;" +
+            "  return JSON.stringify({ok:true,diag:diag,books:results});" +
+            "}catch(e){" +
+            "  return JSON.stringify({ok:false,err:e.message});" +
+            "}" +
+            "})();";
+
+
+        webView.evaluateJavascript(js, result -> {
+            if (result == null || result.equals("null")) {
+                runOnUiThread(() -> {
+                    importing = false;
+                    progressBar.setVisibility(View.GONE);
+                    tvStatus.setText("JS 返回空，请重试");
+                    btnAction.setEnabled(true);
+                });
+                return;
+            }
+            // evaluateJavascript 返回的字符串外面有一层 JSON 引号转义，需要先 unescape
+            String json = result;
+            if (json.startsWith("\"")) {
+                json = json.substring(1, json.length() - 1)
+                           .replace("\\\"", "\"")
+                           .replace("\\\\", "\\");
+            }
+            try {
+                com.google.gson.JsonObject obj = new Gson().fromJson(json, com.google.gson.JsonObject.class);
+                String diag = obj.has("diag") ? obj.get("diag").getAsString() : "";
+                Log.d(TAG, "DOM extracted: " + diag);
+                if (obj.has("err")) {
+                    Log.e(TAG, "DOM JS error: " + obj.get("err").getAsString());
+                    runOnUiThread(() -> {
+                        importing = false;
+                        progressBar.setVisibility(View.GONE);
+                        tvStatus.setText("JS错误，请重试");
+                        btnAction.setEnabled(true);
+                    });
+                    return;
+                }
+                com.google.gson.JsonArray arr = obj.getAsJsonArray("books");
+                List<BookEntry> books = new ArrayList<>();
+                for (int i = 0; i < arr.size(); i++) {
+                    com.google.gson.JsonObject b = arr.get(i).getAsJsonObject();
+                    books.add(new BookEntry(
+                        b.get("bookId").getAsString(),
+                        b.get("title").getAsString(),
+                        b.has("coverUrl") ? b.get("coverUrl").getAsString() : "",
+                        ""
+                    ));
+                }
+                Log.d(TAG, "DOM extracted " + books.size() + " books");
+                executor.execute(() -> startImport(books));
+            } catch (Exception e) {
+                Log.e(TAG, "DOM parse error: " + e.getMessage() + " raw=" + result);
+                runOnUiThread(() -> {
+                    importing = false;
+                    progressBar.setVisibility(View.GONE);
+                    tvStatus.setText("解析失败，请重试");
+                    btnAction.setEnabled(true);
+                });
+            }
+        });
+    }
+
+    private void fetchBookshelfDirect(String cookies) {
+        String[] endpoints = {
+            "https://fanqienovel.com/api/bookshelf/multidetail?needMeta=1&needUpdated=1&limit=200&offset=0",
+            "https://fanqienovel.com/api/bookshelf/multidetail?limit=200&offset=0",
+            "https://fanqienovel.com/api/bookshelf/all_items?limit=200&offset=0",
+        };
+        okhttp3.OkHttpClient client = new okhttp3.OkHttpClient.Builder()
+                .followRedirects(false)  // 不跟随重定向，直接看状态码
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
+        String ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+        for (String url : endpoints) {
+            try {
+                okhttp3.Request req = new okhttp3.Request.Builder()
+                        .url(url)
+                        .header("Cookie", cookies != null ? cookies : "")
+                        .header("User-Agent", ua)
+                        .header("Referer", "https://fanqienovel.com/bookshelf")
+                        .header("Accept", "application/json, text/plain, */*")
+                        .header("Accept-Language", "zh-CN,zh;q=0.9")
+                        .header("Origin", "https://fanqienovel.com")
+                        .header("sec-ch-ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\"")
+                        .header("sec-ch-ua-mobile", "?0")
+                        .header("sec-ch-ua-platform", "\"Windows\"")
+                        .header("Sec-Fetch-Dest", "empty")
+                        .header("Sec-Fetch-Mode", "cors")
+                        .header("Sec-Fetch-Site", "same-origin")
+                        .build();
+                okhttp3.Response resp = client.newCall(req).execute();
+                String body = resp.body() != null ? resp.body().string() : "";
+                Log.d(TAG, "direct API " + url.substring(url.lastIndexOf('/')) +
+                        " http=" + resp.code() +
+                        " location=" + resp.header("Location", "-") +
+                        " bodyLen=" + body.length() +
+                        " preview=" + body.substring(0, Math.min(200, body.length())));
+                if (resp.code() == 200 && body.contains("bookId")) {
+                    List<BookEntry> books = parseBookshelfApi(body);
+                    if (!books.isEmpty()) { startImport(books); return; }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "direct API error", e);
+            }
+        }
+        // OkHttp 直连失败 → 回退：注入 JS 在页面内触发
+        Log.d(TAG, "OkHttp failed, falling back to JS inject");
+        runOnUiThread(() -> webView.evaluateJavascript(
+            "(function(){" +
+            "  var urls=['/api/bookshelf/multidetail?needMeta=1&needUpdated=1&limit=200&offset=0'," +
+            "             '/api/bookshelf/multidetail?limit=200&offset=0'];" +
+            "  var i=0;function next(){" +
+            "    if(i>=urls.length){Android.onError('all failed');return;}" +
+            "    var u=urls[i++];" +
+            "    fetch(u,{credentials:'include',headers:{'Accept':'application/json'}})" +
+            "      .then(function(r){return r.text();})" +
+            "      .then(function(t){" +
+            "        Android.onApiResponse(u+'|code='+200,t);" +
+            "      }).catch(function(e){next();});" +
+            "  }next();" +
+            "})();", null));
     }
 
     /**
@@ -300,6 +627,11 @@ public class FanqieImportActivity extends BaseActivity {
      */
     private void setupInterceptingClient() {
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+                return interceptNavigation(view, request.getUrl().toString());
+            }
+
             @Override
             public void onPageFinished(WebView view, String url) {
                 if (url == null) return;
@@ -583,8 +915,15 @@ public class FanqieImportActivity extends BaseActivity {
                     + " preview=" + body.substring(0, Math.min(200, body.length())));
             List<BookEntry> books = parseBookshelfApi(body);
             if (!books.isEmpty()) {
-                Log.d(TAG, "Found " + books.size() + " books via probe: " + url);
-                startImport(books);
+                Log.d(TAG, "Found " + books.size() + " books via interceptor, caching");
+                cachedBooks = books;
+                // 若用户已点击"提取书架"（importing=true），直接进入选择界面
+                if (importing) {
+                    startImport(books);
+                } else {
+                    // 否则仅缓存，等用户点击按钮时使用
+                    runOnUiThread(() -> tvStatus.setText("书架就绪，点击【提取书架】导入"));
+                }
             }
         }
 
@@ -596,16 +935,32 @@ public class FanqieImportActivity extends BaseActivity {
                 List<BookEntry> books = new ArrayList<>();
                 for (int i = 0; i < arr.size(); i++) {
                     JsonObject obj = arr.get(i).getAsJsonObject();
-                    String bookId = obj.has("bookId") ? obj.get("bookId").getAsString() : "";
-                    String title  = obj.has("title")  ? obj.get("title").getAsString()  : "";
+                    String bookId   = obj.has("bookId")   ? obj.get("bookId").getAsString()   : "";
+                    String title    = obj.has("title")    ? obj.get("title").getAsString()    : "";
+                    String coverUrl = obj.has("coverUrl") ? obj.get("coverUrl").getAsString() : "";
+                    String author   = obj.has("author")   ? obj.get("author").getAsString()   : "";
                     if (!bookId.isEmpty() && !title.isEmpty())
-                        books.add(new BookEntry(bookId, title, "", ""));
+                        books.add(new BookEntry(bookId, title, coverUrl, author));
                 }
-                Log.d(TAG, "extracted " + books.size() + " books");
+                Log.d(TAG, "DOM extracted " + books.size() + " books");
+                if (books.isEmpty()) {
+                    runOnUiThread(() -> {
+                        importing = false;
+                        progressBar.setVisibility(View.GONE);
+                        tvStatus.setText("未找到书籍，请确认书架页面已完全加载");
+                        btnAction.setEnabled(true);
+                    });
+                    return;
+                }
                 startImport(books);
             } catch (Exception e) {
-                Log.e(TAG, "parse error", e);
-                runOnUiThread(() -> tvStatus.setText("解析书架数据失败，请重试"));
+                Log.e(TAG, "DOM parse error", e);
+                runOnUiThread(() -> {
+                    importing = false;
+                    progressBar.setVisibility(View.GONE);
+                    tvStatus.setText("解析失败，请重试");
+                    btnAction.setEnabled(true);
+                });
             }
         }
 
