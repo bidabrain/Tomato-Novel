@@ -30,7 +30,10 @@ public class BookApplication extends AppContext {
 
             @Override
             public void onActivityStarted(Activity activity) {
-                startedActivities.incrementAndGet();
+                if (startedActivities.getAndIncrement() == 0) {
+                    // app 从后台回到前台，触发同步拉取最新数据
+                    triggerAutoSync();
+                }
             }
 
             @Override public void onActivityResumed(Activity activity) {}
@@ -39,7 +42,7 @@ public class BookApplication extends AppContext {
             @Override
             public void onActivityStopped(Activity activity) {
                 if (startedActivities.decrementAndGet() == 0) {
-                    // 所有 Activity 都进入 stopped → app 进入后台，触发自动同步
+                    // 所有 Activity 都进入 stopped → app 进入后台，触发同步上传数据
                     triggerAutoSync();
                 }
             }
@@ -62,6 +65,14 @@ public class BookApplication extends AppContext {
                     public void onSuccess(String message) {
                         Log.d(TAG, "Auto sync success: " + message);
                         WebDavConfig.saveLastSyncAt(appCtx);
+                        // 通知前台 Activity 刷新界面（如阅读时间、同步标签）
+                        appCtx.sendBroadcast(
+                                new android.content.Intent(UpdateChecker.ACTION_UPDATE_DONE)
+                                        .setPackage(appCtx.getPackageName())
+                                        .putExtra("total_new", 0)
+                                        .putExtra(UpdateChecker.EXTRA_IS_FINISHED, true)
+                                        .putExtra(UpdateChecker.EXTRA_CURRENT, 0)
+                                        .putExtra(UpdateChecker.EXTRA_TOTAL, 0));
                     }
                     @Override
                     public void onError(String error) {
