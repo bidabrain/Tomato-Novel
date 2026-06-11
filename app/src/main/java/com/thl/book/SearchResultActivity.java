@@ -209,6 +209,18 @@ public class SearchResultActivity extends BaseActivity {
                 holder.ivCover.setImageResource(R.mipmap.cover_default_new);
             }
             holder.btnAdd.setOnClickListener(v -> addToShelf(item));
+            holder.itemView.setOnClickListener(v -> {
+                String reads = "";
+                if (item.wordNumber > 0) {
+                    reads = item.wordNumber >= 10000
+                            ? String.format("%.1f万字", item.wordNumber / 10000.0)
+                            : item.wordNumber + "字";
+                }
+                BookDetailActivity.startFromSearch(
+                        SearchResultActivity.this,
+                        item.bookId, item.bookName, item.author,
+                        reads, item.summary, item.coverUrl);
+            });
         }
 
         @Override
