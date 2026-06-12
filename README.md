@@ -19,9 +19,8 @@
 
 ## 截图
 
-![书架与书城](screenshot1.jpg)
+![全新设计UI](tomato-novel-ui-redesign.png)
 
-![阅读界面](screenshot2.jpg)
 
 ## 下载
 
