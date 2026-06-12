@@ -165,9 +165,12 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             @Override
             public void onPlayStateChanged(boolean isPlaying) {
                 if (mTtsDialog != null) mTtsDialog.setPlayState(isPlaying);
+                int idleColor = config.isEinkMode()
+                        ? 0xFF000000
+                        : getResources().getColor(R.color.white);
                 tv_listen.setTextColor(isPlaying
                         ? getResources().getColor(R.color.read_dialog_button_select)
-                        : getResources().getColor(R.color.white));
+                        : idleColor);
             }
 
             @Override
@@ -253,6 +256,8 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         if (config.isEinkMode()) {
             bookpage.setPageMode(Config.PAGE_MODE_NONE);
             bookpage.post(() -> pageFactory.changeBookBg(Config.BOOK_BG_5));
+            // 阅读菜单改为白底黑字，在墨水屏上清晰可见
+            applyEinkMenuStyle();
         }
     }
 
@@ -616,6 +621,42 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
     //隐藏书本进度
     public void hideProgress() {
         rl_progress.setVisibility(View.GONE);
+    }
+
+    /** 墨水屏模式：将阅读菜单改为白底黑字，确保在电子墨水屏上清晰可见 */
+    private void applyEinkMenuStyle() {
+        int white = 0xFFFFFFFF;
+        int black = 0xFF000000;
+        // 底部菜单整体背景改为不透明白色
+        bookpop_bottom.setBackgroundColor(white);
+        // 上一章 / 下一章 按钮文字改黑色
+        tv_pre.setTextColor(black);
+        tv_next.setTextColor(black);
+        // 目录 / 日夜 / 翻页 / 设置 等按钮：文字 + 图标都改黑色
+        einkTintMenuButton(tv_directory, black);
+        einkTintMenuButton(tv_dayornight, black);
+        einkTintMenuButton(tv_pagemode, black);
+        einkTintMenuButton(tv_setting, black);
+        TextView tvListen = findViewById(R.id.tv_listen);
+        if (tvListen != null) einkTintMenuButton(tvListen, black);
+        // 顶部 Toolbar 背景也改白色
+        toolbar.setBackgroundColor(white);
+        toolbar.setTitleTextColor(black);
+    }
+
+    /** 将 TextView 的文字颜色和 drawableTop 图标颜色统一设为指定颜色 */
+    private void einkTintMenuButton(TextView tv, int color) {
+        tv.setTextColor(color);
+        android.graphics.drawable.Drawable[] drawables = tv.getCompoundDrawables();
+        for (int i = 0; i < drawables.length; i++) {
+            if (drawables[i] != null) {
+                android.graphics.drawable.Drawable wrapped =
+                    androidx.core.graphics.drawable.DrawableCompat.wrap(drawables[i].mutate());
+                androidx.core.graphics.drawable.DrawableCompat.setTint(wrapped, color);
+                drawables[i] = wrapped;
+            }
+        }
+        tv.setCompoundDrawables(drawables[0], drawables[1], drawables[2], drawables[3]);
     }
 
     public void initDayOrNight() {
