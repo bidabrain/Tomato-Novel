@@ -153,7 +153,7 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
         //初始化字体
         selectBg(config.getBookBgType());
 
-        // 墨水屏模式开启时：锁定背景选择，显示提示
+        // 墨水屏模式开启时：锁定背景选择，显示提示，改为白底黑字
         if (config.isEinkMode()) {
             float dim = 0.35f;
             iv_bg_default.setAlpha(dim); iv_bg_default.setClickable(false);
@@ -164,6 +164,7 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
             iv_bg5.setAlpha(dim); iv_bg5.setClickable(false);
             View notice = findViewById(com.thl.reader.R.id.tv_eink_lock_notice);
             if (notice != null) notice.setVisibility(View.VISIBLE);
+            applyEinkStyle();
         }
 
         sb_brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -187,6 +188,30 @@ public class SettingDialog extends Dialog implements View.OnClickListener {
     }
 
     //选择背景
+    /** 墨水屏模式：对话框改为白底黑字（递归遍历所有 TextView，包括无 ID 的标签） */
+    private void applyEinkStyle() {
+        int white = 0xFFFFFFFF;
+        int black = 0xFF000000;
+        View root = findViewById(com.thl.reader.R.id.layout_setting_root);
+        if (root != null) {
+            root.setBackgroundColor(white);
+            if (root instanceof android.view.ViewGroup) {
+                setAllTextViewsColor((android.view.ViewGroup) root, black);
+            }
+        }
+    }
+
+    private void setAllTextViewsColor(android.view.ViewGroup parent, int color) {
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            if (child instanceof TextView) {
+                ((TextView) child).setTextColor(color);
+            } else if (child instanceof android.view.ViewGroup) {
+                setAllTextViewsColor((android.view.ViewGroup) child, color);
+            }
+        }
+    }
+
     private void selectBg(int type) {
         switch (type) {
             case Config.BOOK_BG_DEFAULT:

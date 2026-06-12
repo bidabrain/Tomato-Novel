@@ -72,6 +72,34 @@ public class TtsDialog extends Dialog implements View.OnClickListener {
         getWindow().setAttributes(p);
 
         selectSpeed(1.0f);
+
+        if (com.thl.reader.Config.getInstance().isEinkMode()) {
+            applyEinkStyle();
+        }
+    }
+
+    private void applyEinkStyle() {
+        int white = 0xFFFFFFFF;
+        int black = 0xFF000000;
+        android.view.View root = findViewById(com.thl.reader.R.id.layout_tts_root);
+        if (root != null) {
+            root.setBackgroundColor(white);
+            // 递归遍历所有 TextView（包括"引擎"/"语速"等无 ID 的标签）
+            if (root instanceof android.view.ViewGroup) {
+                setAllTextViewsColor((android.view.ViewGroup) root, black);
+            }
+        }
+    }
+
+    private void setAllTextViewsColor(android.view.ViewGroup parent, int color) {
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            android.view.View child = parent.getChildAt(i);
+            if (child instanceof android.widget.TextView) {
+                ((android.widget.TextView) child).setTextColor(color);
+            } else if (child instanceof android.view.ViewGroup) {
+                setAllTextViewsColor((android.view.ViewGroup) child, color);
+            }
+        }
     }
 
     @Override
