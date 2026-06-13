@@ -287,3 +287,14 @@ GET /download/%E6%96%97%E7%A0%B4%E8%8B%8D%E7%A9%B9%E2%80%94%E2%80%94%E4%B9%9D%E6
 ## 许可
 
 本项目仅供个人非商业用途。请遵守番茄小说 / 字节跳动的服务条款。
+
+
+## Star History
+
+<a href="https://www.star-history.com/#bidabrain/Tomato-Novel&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=bidabrain/Tomato-Novel&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=bidabrain/Tomato-Novel&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=bidabrain/Tomato-Novel&type=Date" />
+ </picture>
+</a>
