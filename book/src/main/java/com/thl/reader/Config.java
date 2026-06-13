@@ -17,6 +17,7 @@ public class Config {
     private final static String EINK_KEY = "eink";
     private final static String EDGE_TTS_KEY = "edge_tts";
     private final static String TTS_NOTICE_SHOWN_KEY = "tts_notice_shown";
+    private final static String SINGLE_HAND_KEY = "single_hand";
     // 开启墨水屏前保存的原始设置，用于关闭时恢复
     private final static String PRE_EINK_PAGE_MODE_KEY = "pre_eink_page_mode";
     private final static String PRE_EINK_BOOK_BG_KEY = "pre_eink_book_bg";
@@ -96,6 +97,14 @@ public class Config {
 
     public void setTtsNoticeShown() {
         sp.edit().putBoolean(TTS_NOTICE_SHOWN_KEY, true).commit();
+    }
+
+    public boolean isSingleHandMode() {
+        return sp.getBoolean(SINGLE_HAND_KEY, false);
+    }
+
+    public void setSingleHandMode(boolean enabled) {
+        sp.edit().putBoolean(SINGLE_HAND_KEY, enabled).commit();
     }
 
     public int getPreEinkPageMode() {

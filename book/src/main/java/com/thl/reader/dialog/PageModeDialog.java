@@ -7,6 +7,8 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.CompoundButton;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import com.thl.reader.Config;
@@ -20,9 +22,11 @@ public class PageModeDialog extends Dialog implements View.OnClickListener {
     TextView tv_cover;
     TextView tv_slide;
     TextView tv_none;
+    Switch sw_single_hand;
 
     private Config config;
     private PageModeListener pageModeListener;
+    private SingleHandListener singleHandListener;
 
     private PageModeDialog(Context context, boolean flag, OnCancelListener listener) {
         super(context, flag, listener);
@@ -43,16 +47,29 @@ public class PageModeDialog extends Dialog implements View.OnClickListener {
         getWindow().setGravity(Gravity.BOTTOM);
         setContentView(com.thl.reader.R.layout.dialog_pagemode);
 
+        config = Config.getInstance();
+
         tv_simulation = (TextView) findViewById(com.thl.reader.R.id.tv_simulation);
         tv_cover = (TextView) findViewById(com.thl.reader.R.id.tv_cover);
         tv_slide = (TextView) findViewById(com.thl.reader.R.id.tv_slide);
         tv_none = (TextView) findViewById(com.thl.reader.R.id.tv_none);
-
+        sw_single_hand = (Switch) findViewById(com.thl.reader.R.id.sw_single_hand);
 
         findViewById(com.thl.reader.R.id.tv_simulation).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.tv_cover).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.tv_slide).setOnClickListener(this);
         findViewById(com.thl.reader.R.id.tv_none).setOnClickListener(this);
+
+        sw_single_hand.setChecked(config.isSingleHandMode());
+        sw_single_hand.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                config.setSingleHandMode(isChecked);
+                if (singleHandListener != null) {
+                    singleHandListener.onSingleHandChanged(isChecked);
+                }
+            }
+        });
 
         WindowManager m = getWindow().getWindowManager();
         Display d = m.getDefaultDisplay();
@@ -60,8 +77,18 @@ public class PageModeDialog extends Dialog implements View.OnClickListener {
         p.width = d.getWidth();
         getWindow().setAttributes(p);
 
-        config = Config.getInstance();
         selectPageMode(config.getPageMode());
+
+        if (config.isEinkMode()) {
+            tv_simulation.setEnabled(false);
+            tv_cover.setEnabled(false);
+            tv_slide.setEnabled(false);
+            tv_none.setEnabled(false);
+            tv_simulation.setAlpha(0.4f);
+            tv_cover.setAlpha(0.4f);
+            tv_slide.setAlpha(0.4f);
+            tv_none.setAlpha(0.4f);
+        }
     }
 
     public void onClick(View view) {
@@ -133,7 +160,15 @@ public class PageModeDialog extends Dialog implements View.OnClickListener {
         this.pageModeListener = pageModeListener;
     }
 
+    public void setSingleHandListener(SingleHandListener listener) {
+        this.singleHandListener = listener;
+    }
+
     public interface PageModeListener {
         void changePageMode(int pageMode);
+    }
+
+    public interface SingleHandListener {
+        void onSingleHandChanged(boolean enabled);
     }
 }

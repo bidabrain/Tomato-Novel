@@ -53,6 +53,7 @@ public class PageWidget extends View {
     Bitmap mCurPageBitmap = null; // 当前页
     Bitmap mNextPageBitmap = null;
     private AnimationProvider mAnimationProvider;
+    private boolean mSingleHandMode = false;
 
     Scroller mScroller;
     private int mBgColor = 0xFFCEC29C;
@@ -238,7 +239,7 @@ public class PageWidget extends View {
                         mTouchListener.center();
                     }
                     return true;
-                } else if (x < mScreenWidth / 2){
+                } else if (x < mScreenWidth / 2 && !mSingleHandMode){
                     isNext = false;
                 }else{
                     isNext = true;
@@ -302,6 +303,10 @@ public class PageWidget extends View {
 
     public void setTouchListener(TouchListener mTouchListener){
         this.mTouchListener = mTouchListener;
+    }
+
+    public void setSingleHandMode(boolean enabled) {
+        mSingleHandMode = enabled;
     }
 
     public interface TouchListener{

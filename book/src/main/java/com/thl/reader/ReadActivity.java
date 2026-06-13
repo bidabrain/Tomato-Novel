@@ -242,6 +242,7 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         }
 
         bookpage.setPageMode(config.getPageMode());
+        bookpage.setSingleHandMode(config.isSingleHandMode());
         pageFactory.setPageWidget(bookpage);
 
         try {
@@ -308,6 +309,12 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             @Override
             public void changePageMode(int pageMode) {
                 bookpage.setPageMode(pageMode);
+            }
+        });
+        mPageModeDialog.setSingleHandListener(new PageModeDialog.SingleHandListener() {
+            @Override
+            public void onSingleHandChanged(boolean enabled) {
+                bookpage.setSingleHandMode(enabled);
             }
         });
         mSettingDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -743,12 +750,8 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             }
 
         } else if (i == R.id.tv_pagemode) {
-            if (config.isEinkMode()) {
-                Toast.makeText(this, "墨水屏模式已开启，翻页模式已锁定", Toast.LENGTH_SHORT).show();
-            } else {
-                hideReadSetting();
-                mPageModeDialog.show();
-            }
+            hideReadSetting();
+            mPageModeDialog.show();
 
         } else if (i == R.id.tv_setting) {
             hideReadSetting();

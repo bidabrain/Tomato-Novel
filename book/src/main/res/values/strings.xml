@@ -28,5 +28,6 @@
     <string name="page_mode_cover">覆盖</string>
     <string name="page_mode_slide">滑动</string>
     <string name="page_mode_none">无</string>
+    <string name="page_mode_single_hand">单手模式</string>
 
 </resources>
