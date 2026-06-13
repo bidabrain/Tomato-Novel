@@ -32,7 +32,7 @@ public class AboutActivity extends BaseActivity {
         TextView tvMsg = (TextView) findViewById(R.id.tv_msg);
         tvMsg.setMovementMethod(LinkMovementMethod.getInstance());
         tvMsg.setText(
-                "版本：" + version + "\n\n" +
+                "版本：" + version + "（独立版）\n\n" +
                 "一款支持番茄小说搜索与下载的本地 TXT 阅读器。\n" +
                 "无广告，无追踪。\n\n" +
                 "源码：\nhttps://github.com/bidabrain/Tomato-Novel"

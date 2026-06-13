@@ -53,98 +53,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- ── Section 1: 搜索 / 下载服务器 ───────────────────────────── -->
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="自定义搜索下载服务器"
-                    android:textColor="#111111"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <Switch
-                    android:id="@+id/switch_downloader"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:layout_marginBottom="12dp"
-                android:text="开启后使用下方地址替换内置服务器"
-                android:textColor="#888888"
-                android:textSize="12sp" />
-
-            <LinearLayout
-                android:id="@+id/group_downloader"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
-                    android:text="服务器地址"
-                    android:textColor="#555555"
-                    android:textSize="13sp" />
-
-                <EditText
-                    android:id="@+id/et_downloader_url"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:background="#FFFFFF"
-                    android:hint="https://your-downloader-server.example.com"
-                    android:inputType="textUri"
-                    android:padding="8dp"
-                    android:singleLine="true"
-                    android:textColor="#111111"
-                    android:textColorHint="#AAAAAA" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
-                    android:text="访问密码（未设置密码留空）"
-                    android:textColor="#555555"
-                    android:textSize="13sp" />
-
-                <EditText
-                    android:id="@+id/et_downloader_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="4dp"
-                    android:background="#FFFFFF"
-                    android:hint="留空表示无密码"
-                    android:inputType="textPassword"
-                    android:padding="8dp"
-                    android:singleLine="true"
-                    android:textColor="#111111"
-                    android:textColorHint="#AAAAAA" />
-
-            </LinearLayout>
-
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="16dp"
-                android:background="#E0E0E0" />
-
-            <!-- ── Section 2: 书城数据源 ───────────────────────────────────── -->
+            <!-- ── Section 1: 书城数据源 ───────────────────────────────────── -->
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -319,6 +228,50 @@
                     android:textColorHint="#AAAAAA" />
 
             </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                android:background="#E0E0E0" />
+
+            <!-- ── Section: 内嵌服务器 ──────────────────────────────────────── -->
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="内嵌服务器"
+                android:textColor="#111111"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:layout_marginBottom="12dp"
+                android:text="清理服务器中间缓存（章节分片）及合并产出的 TXT，不影响书架中的书（tomato/local/）"
+                android:textColor="#888888"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btn_clear_cache"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:backgroundTint="#FF6B35"
+                android:text="清理下载缓存"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_cache_size"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="#AAAAAA"
+                android:textSize="12sp" />
 
         </LinearLayout>
 

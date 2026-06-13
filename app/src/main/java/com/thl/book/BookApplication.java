@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.thl.book.server.EmbeddedServerManager;
 import com.thl.reader.AppContext;
 
 import java.util.concurrent.ExecutorService;
@@ -22,6 +23,7 @@ public class BookApplication extends AppContext {
     public void onCreate() {
         super.onCreate();
         NotifyHelper.init(this);
+        startEmbeddedServer();
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle bundle) {
@@ -54,6 +56,20 @@ public class BookApplication extends AppContext {
                 ActivityTack.tack.removeActivity(activity);
             }
         });
+    }
+
+    private void startEmbeddedServer() {
+        final android.content.Context appCtx = getApplicationContext();
+        new Thread(() -> {
+            EmbeddedServerManager server = EmbeddedServerManager.getInstance();
+            server.start(appCtx);
+            boolean ready = server.waitUntilReady(15_000);
+            if (ready) {
+                Log.d(TAG, "内嵌服务器就绪");
+            } else {
+                Log.w(TAG, "内嵌服务器启动超时，搜索/下载功能可能不可用");
+            }
+        }, "embedded-server-start").start();
     }
 
     private void triggerAutoSync() {

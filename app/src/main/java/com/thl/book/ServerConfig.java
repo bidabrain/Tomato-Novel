@@ -13,10 +13,6 @@ public class ServerConfig {
 
     // ── SharedPreferences keys ────────────────────────────────────────────────
 
-    public static final String KEY_CUSTOM_DOWNLOADER_ENABLED  = "custom_downloader_enabled";
-    public static final String KEY_CUSTOM_DOWNLOADER_URL      = "custom_downloader_url";
-    public static final String KEY_CUSTOM_DOWNLOADER_PASSWORD = "custom_downloader_password";
-
     public static final String KEY_CUSTOM_STORE_ENABLED = "custom_store_enabled";
     public static final String KEY_CUSTOM_STORE_URL     = "custom_store_url";
 
@@ -25,25 +21,14 @@ public class ServerConfig {
     public static final String DEFAULT_STORE_URL =
             "https://bidabrain.github.io/FanqieRankTracker/api/lastest/all.json";
 
-    // ── Downloader ────────────────────────────────────────────────────────────
+    // ── Downloader（内嵌服务器，固定 localhost）────────────────────────────────
 
     public static String getDownloaderUrl(Context ctx) {
-        if (isCustomDownloaderEnabled(ctx)) {
-            String url = SharedPreferencesUtils.getString(ctx, KEY_CUSTOM_DOWNLOADER_URL, "").trim();
-            if (!url.isEmpty()) return url;
-        }
-        return BuildConfig.DOWNLOADER_URL;
+        return "http://127.0.0.1:18423";
     }
 
     public static String getDownloaderPassword(Context ctx) {
-        if (isCustomDownloaderEnabled(ctx)) {
-            return SharedPreferencesUtils.getString(ctx, KEY_CUSTOM_DOWNLOADER_PASSWORD, "");
-        }
-        return BuildConfig.DOWNLOADER_PASSWORD;
-    }
-
-    public static boolean isCustomDownloaderEnabled(Context ctx) {
-        return SharedPreferencesUtils.getBoolean(ctx, KEY_CUSTOM_DOWNLOADER_ENABLED, false);
+        return "";
     }
 
     // ── Book store ────────────────────────────────────────────────────────────

@@ -261,7 +261,7 @@ public class NovelDownloadManager {
     }
 
     public static File getTomatoDir(Context context) {
-        File dir = new File(context.getExternalFilesDir(null), "tomato");
+        File dir = new File(context.getExternalFilesDir(null), "tomato/local");
         dir.mkdirs();
         return dir;
     }

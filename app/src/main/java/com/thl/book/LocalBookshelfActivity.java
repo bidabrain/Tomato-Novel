@@ -447,6 +447,10 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                                 String path = book.getBookpath();
                                 if (path != null && !path.isEmpty()) {
                                     new File(path).delete();
+                                    // 同步删除服务器副本（tomato/server/书名.txt）
+                                    File serverFile = new File(
+                                            path.replace("/tomato/local/", "/tomato/server/"));
+                                    serverFile.delete();
                                 }
                             }
                             List<BookList> books = getBooks();

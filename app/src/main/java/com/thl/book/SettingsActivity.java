@@ -1,5 +1,6 @@
 package com.thl.book;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
@@ -7,22 +8,20 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import com.thl.book.base.BaseActivity;
 
 public class SettingsActivity extends BaseActivity {
 
-    private Switch switchDownloader;
     private Switch switchStore;
-    private View groupDownloader;
     private View groupStore;
-    private EditText etDownloaderUrl;
-    private EditText etDownloaderPassword;
     private EditText etStoreUrl;
     private EditText etWebDavUrl;
     private EditText etWebDavUsername;
     private EditText etWebDavPassword;
+    private TextView tvCacheSize;
 
     @Override
     protected int initLayout() {
@@ -33,25 +32,16 @@ public class SettingsActivity extends BaseActivity {
     protected void initView() {
         findViewById(R.id.iv_back).setOnClickListener(v -> finish());
 
-        switchDownloader = findViewById(R.id.switch_downloader);
-        switchStore      = findViewById(R.id.switch_store);
-        groupDownloader  = findViewById(R.id.group_downloader);
-        groupStore       = findViewById(R.id.group_store);
-        etDownloaderUrl      = findViewById(R.id.et_downloader_url);
-        etDownloaderPassword = findViewById(R.id.et_downloader_password);
-        etStoreUrl           = findViewById(R.id.et_store_url);
+        switchStore = findViewById(R.id.switch_store);
+        groupStore  = findViewById(R.id.group_store);
+        etStoreUrl  = findViewById(R.id.et_store_url);
         etWebDavUrl      = findViewById(R.id.et_webdav_url);
         etWebDavUsername = findViewById(R.id.et_webdav_username);
         etWebDavPassword = findViewById(R.id.et_webdav_password);
 
         // Restore saved state
-        switchDownloader.setChecked(ServerConfig.isCustomDownloaderEnabled(this));
         switchStore.setChecked(ServerConfig.isCustomStoreEnabled(this));
         refreshLastSyncLabel();
-        etDownloaderUrl.setText(
-                SharedPreferencesUtils.getString(this, ServerConfig.KEY_CUSTOM_DOWNLOADER_URL, ""));
-        etDownloaderPassword.setText(
-                SharedPreferencesUtils.getString(this, ServerConfig.KEY_CUSTOM_DOWNLOADER_PASSWORD, ""));
         etStoreUrl.setText(
                 SharedPreferencesUtils.getString(this, ServerConfig.KEY_CUSTOM_STORE_URL, ""));
         etWebDavUrl.setText(
@@ -62,13 +52,14 @@ public class SettingsActivity extends BaseActivity {
                 SharedPreferencesUtils.getString(this, WebDavConfig.KEY_WEBDAV_PASSWORD, ""));
 
         // Apply initial enabled state to input groups
-        setGroupEnabled(groupDownloader, switchDownloader.isChecked());
         setGroupEnabled(groupStore, switchStore.isChecked());
 
-        switchDownloader.setOnCheckedChangeListener((btn, checked) ->
-                setGroupEnabled(groupDownloader, checked));
         switchStore.setOnCheckedChangeListener((btn, checked) ->
                 setGroupEnabled(groupStore, checked));
+
+        tvCacheSize = findViewById(R.id.tv_cache_size);
+        refreshCacheSizeLabel();
+        findViewById(R.id.btn_clear_cache).setOnClickListener(v -> confirmClearCache());
 
         findViewById(R.id.btn_save).setOnClickListener(v -> save());
     }
@@ -77,15 +68,6 @@ public class SettingsActivity extends BaseActivity {
     protected void initData(Bundle savedInstanceState) {}
 
     private void save() {
-        SharedPreferencesUtils.saveBoolean(this,
-                ServerConfig.KEY_CUSTOM_DOWNLOADER_ENABLED, switchDownloader.isChecked());
-        SharedPreferencesUtils.saveString(this,
-                ServerConfig.KEY_CUSTOM_DOWNLOADER_URL,
-                etDownloaderUrl.getText().toString().trim());
-        SharedPreferencesUtils.saveString(this,
-                ServerConfig.KEY_CUSTOM_DOWNLOADER_PASSWORD,
-                etDownloaderPassword.getText().toString());
-
         SharedPreferencesUtils.saveBoolean(this,
                 ServerConfig.KEY_CUSTOM_STORE_ENABLED, switchStore.isChecked());
         SharedPreferencesUtils.saveString(this,
@@ -127,6 +109,120 @@ public class SettingsActivity extends BaseActivity {
         else if (days < 1)     label = hours + " 小时前";
         else                   label = days + " 天前";
         tv.setText("上次同步：" + label);
+    }
+
+    // ── 缓存清理 ─────────────────────────────────────────────────────────────
+
+    /** server_data/ — 中间缓存文件夹（{book_id}/） */
+    private File serverDataDir() {
+        return new File(getFilesDir(), "server_data");
+    }
+
+    /** tomato/server/ — 服务器合并输出的 TXT 文件 */
+    private File serverSaveDir() {
+        return new File(getExternalFilesDir(null), "tomato/server");
+    }
+
+    /** 两处合计占用字节。 */
+    private long cacheTotalBytes() {
+        return cacheDirSize(serverDataDir(), true)
+             + cacheDirSize(serverSaveDir(), false);
+    }
+
+    /**
+     * @param dirsOnly true → 只统计子目录（跳过顶层文件如 config.yml）
+     *                 false → 统计目录内所有文件
+     */
+    private long cacheDirSize(File dir, boolean dirsOnly) {
+        if (!dir.exists()) return 0;
+        long total = 0;
+        File[] entries = dir.listFiles();
+        if (entries == null) return 0;
+        for (File f : entries) {
+            if (dirsOnly && !f.isDirectory()) continue;
+            total += f.isDirectory() ? dirSize(f) : f.length();
+        }
+        return total;
+    }
+
+    private long dirSize(File dir) {
+        long size = 0;
+        File[] files = dir.listFiles();
+        if (files == null) return 0;
+        for (File f : files) {
+            size += f.isDirectory() ? dirSize(f) : f.length();
+        }
+        return size;
+    }
+
+    private void refreshCacheSizeLabel() {
+        long bytes = cacheTotalBytes();
+        if (bytes == 0) {
+            tvCacheSize.setText("当前无缓存");
+        } else {
+            tvCacheSize.setText("当前缓存：" + formatSize(bytes));
+        }
+    }
+
+    private String formatSize(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
+    }
+
+    private void confirmClearCache() {
+        long bytes = cacheTotalBytes();
+        String sizeStr = bytes > 0 ? formatSize(bytes) : "0 B";
+        new AlertDialog.Builder(this)
+                .setTitle("清理服务器缓存")
+                .setMessage("将删除（共 " + sizeStr + "）：\n"
+                        + "• 中间缓存文件夹（章节分片、进度文件）\n"
+                        + "• 服务器合并输出的 TXT 文件\n\n"
+                        + "书架中的 TXT（tomato/local/）不受影响。\n\n确认清理？")
+                .setPositiveButton("清理", (d, w) -> clearCache())
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void clearCache() {
+        // 1. 删除 server_data/ 下所有子目录
+        int dirCount = 0;
+        File dataDir = serverDataDir();
+        if (dataDir.exists()) {
+            File[] entries = dataDir.listFiles();
+            if (entries != null) {
+                for (File f : entries) {
+                    if (f.isDirectory()) { deleteRecursive(f); dirCount++; }
+                }
+            }
+        }
+
+        // 2. 删除 tomato/server/ 下所有文件（保留目录本身）
+        int fileCount = 0;
+        File saveDir = serverSaveDir();
+        if (saveDir.exists()) {
+            File[] files = saveDir.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.isFile()) { f.delete(); fileCount++; }
+                }
+            }
+        }
+
+        refreshCacheSizeLabel();
+        String msg = (dirCount + fileCount > 0)
+                ? "已清理 " + dirCount + " 个缓存文件夹、" + fileCount + " 个 TXT 文件"
+                : "无缓存可清理";
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    private void deleteRecursive(File f) {
+        if (f.isDirectory()) {
+            File[] children = f.listFiles();
+            if (children != null) for (File c : children) deleteRecursive(c);
+        }
+        f.delete();
     }
 
     /** Grey out / re-enable all child views inside a group layout. */
