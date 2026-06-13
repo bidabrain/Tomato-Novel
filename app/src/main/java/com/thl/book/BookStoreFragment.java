@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
@@ -12,9 +14,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -23,6 +27,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
 import com.thl.book.network.BookStoreApi;
@@ -30,6 +35,8 @@ import com.thl.book.network.dto.RankBook;
 import com.thl.book.network.dto.RankCategory;
 import com.thl.reader.Config;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,6 +49,18 @@ public class BookStoreFragment extends Fragment {
     private View layoutError;
     private HorizontalScrollView scrollChips;
     private LinearLayout chipGroup;
+
+    // Banner
+    private View bannerContainer;
+    private ViewPager2 vpBanner;
+    private LinearLayout bannerDots;
+    private View rowFeaturedHeader;
+    private TextView tvRefreshBooks;
+    private BannerAdapter bannerAdapter;
+    private final List<RankBook> bannerBooks = new ArrayList<>();
+    private final Handler autoScrollHandler = new Handler(Looper.getMainLooper());
+    private Runnable autoScrollRunnable;
+    private static final int AUTO_SCROLL_INTERVAL_MS = 3000;
 
     private BookGridAdapter gridAdapter;
     private List<RankCategory> categories;
@@ -67,16 +86,64 @@ public class BookStoreFragment extends Fragment {
         scrollChips = view.findViewById(R.id.scroll_chips);
         chipGroup = view.findViewById(R.id.chip_group);
 
+        // Banner views
+        bannerContainer = view.findViewById(R.id.banner_container);
+        vpBanner = view.findViewById(R.id.vp_banner);
+        bannerDots = view.findViewById(R.id.banner_dots);
+        rowFeaturedHeader = view.findViewById(R.id.row_featured_header);
+        tvRefreshBooks = view.findViewById(R.id.tv_refresh_books);
+
         view.findViewById(R.id.btn_retry).setOnClickListener(v -> fetchData());
 
-        rvBooks.setLayoutManager(new GridLayoutManager(requireContext(), 3));
+        // Banner adapter setup
+        bannerAdapter = new BannerAdapter(bannerBooks);
+        vpBanner.setAdapter(bannerAdapter);
+        vpBanner.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                updateDots(position);
+            }
+        });
+
+        // Banner click: open book detail
+        bannerAdapter.setOnItemClickListener(book -> {
+            if (book != null) {
+                BookDetailActivity.start(requireActivity(),
+                        book.title, book.author, book.reads, book.intro, book.cover);
+            }
+        });
+
+        // Auto-scroll runnable
+        autoScrollRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (!bannerBooks.isEmpty()) {
+                    int next = (vpBanner.getCurrentItem() + 1) % bannerBooks.size();
+                    vpBanner.setCurrentItem(next, true);
+                    autoScrollHandler.postDelayed(this, AUTO_SCROLL_INTERVAL_MS);
+                }
+            }
+        };
+
+        // Refresh books button
+        if (tvRefreshBooks != null) {
+            tvRefreshBooks.setOnClickListener(v -> {
+                if (categories != null && !categories.isEmpty()) {
+                    RankDataCache.randomizeCategory(categories.get(selectedIndex));
+                    showBooksForIndex(selectedIndex);
+                    updateBanner(categories);
+                }
+            });
+        }
+
+        rvBooks.setLayoutManager(new GridLayoutManager(requireContext(), 4));
         rvBooks.setHasFixedSize(false);
         gridAdapter = new BookGridAdapter(book ->
                 BookDetailActivity.start(requireActivity(),
                         book.title, book.author, book.reads, book.intro, book.cover));
         rvBooks.setAdapter(gridAdapter);
 
-        // 左右滑动切换分类 tag（循环）
+        // Left/right swipe to change category
         GestureDetector swipeDetector = new GestureDetector(requireContext(),
                 new GestureDetector.SimpleOnGestureListener() {
                     private static final int SWIPE_MIN_DISTANCE = 80;
@@ -112,17 +179,18 @@ public class BookStoreFragment extends Fragment {
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         swipeRefresh.setOnRefreshListener(() -> {
             if (categories != null) {
-                for (com.thl.book.network.dto.RankCategory cat : categories) {
+                for (RankCategory cat : categories) {
                     RankDataCache.randomizeCategory(cat);
                 }
                 showBooksForIndex(selectedIndex);
+                updateBanner(categories);
                 swipeRefresh.setRefreshing(false);
             } else {
                 fetchData();
             }
         });
 
-        // 书城搜索栏
+        // Store search bar
         EditText etStoreSearch = view.findViewById(R.id.et_store_search);
         etStoreSearch.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
@@ -137,7 +205,7 @@ public class BookStoreFragment extends Fragment {
             return false;
         });
 
-        // 初始化时同步 eink 背景
+        // Sync eink background
         boolean eink = Config.createConfig(requireContext()).isEinkMode();
         view.setBackgroundColor(eink ? 0xFFFFFFFF : getResources().getColor(R.color.bg_activity));
 
@@ -147,6 +215,20 @@ public class BookStoreFragment extends Fragment {
         } else {
             fetchData();
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!bannerBooks.isEmpty()) {
+            autoScrollHandler.postDelayed(autoScrollRunnable, AUTO_SCROLL_INTERVAL_MS);
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        autoScrollHandler.removeCallbacks(autoScrollRunnable);
     }
 
     private void fetchData() {
@@ -179,6 +261,7 @@ public class BookStoreFragment extends Fragment {
                     categories = RankDataCache.getCategories();
                     buildChips();
                     showBooksForIndex(selectedIndex);
+                    updateBanner(categories);
                 }
             });
         });
@@ -194,11 +277,56 @@ public class BookStoreFragment extends Fragment {
         swipeRefresh.setVisibility(View.VISIBLE);
         scrollChips.setVisibility(View.VISIBLE);
 
+        if (bannerContainer != null) bannerContainer.setVisibility(View.VISIBLE);
+        if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.VISIBLE);
+
         buildChips();
         showBooksForIndex(0);
+        updateBanner(cats);
+
+        // Start auto-scroll
+        autoScrollHandler.removeCallbacks(autoScrollRunnable);
+        autoScrollHandler.postDelayed(autoScrollRunnable, AUTO_SCROLL_INTERVAL_MS);
     }
 
-    /** 动态生成分类 Chip，选中高亮 */
+    private void updateBanner(List<RankCategory> cats) {
+        if (vpBanner == null || bannerDots == null) return;
+        List<RankBook> pool = new ArrayList<>();
+        for (RankCategory cat : cats) {
+            if (cat.displayBooks != null) pool.addAll(cat.displayBooks);
+        }
+        Collections.shuffle(pool);
+        bannerBooks.clear();
+        for (int i = 0; i < Math.min(3, pool.size()); i++) bannerBooks.add(pool.get(i));
+        bannerAdapter.notifyDataSetChanged();
+        updateDots(0);
+    }
+
+    private void updateDots(int selectedPosition) {
+        if (bannerDots == null) return;
+        bannerDots.removeAllViews();
+        int size = bannerBooks.size();
+        int dotSize = dp(requireContext(), 8);
+        int dotMargin = dp(requireContext(), 3);
+        for (int i = 0; i < size; i++) {
+            View dot = new View(requireContext());
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dotSize, dotSize);
+            lp.setMargins(dotMargin, 0, dotMargin, 0);
+            dot.setLayoutParams(lp);
+            dot.setBackgroundResource(R.drawable.bg_status_badge);
+            // Set color
+            int color = (i == selectedPosition) ? 0xFFFFFFFF : 0x80FFFFFF;
+            dot.setBackgroundColor(color);
+            // Use rounded corners via background shape
+            android.graphics.drawable.GradientDrawable dotDrawable = new android.graphics.drawable.GradientDrawable();
+            dotDrawable.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+            dotDrawable.setColor(color);
+            dot.setBackground(dotDrawable);
+            bannerDots.addView(dot);
+        }
+    }
+
+    /** 动态生成分类 Chip，显示前4个 + 更多分类 */
     private void buildChips() {
         if (getContext() == null || categories == null) return;
         chipGroup.removeAllViews();
@@ -207,7 +335,8 @@ public class BookStoreFragment extends Fragment {
         int dp20 = dp(ctx, 20);
         int dp4 = dp(ctx, 4);
 
-        for (int i = 0; i < categories.size(); i++) {
+        int visibleCount = Math.min(4, categories.size());
+        for (int i = 0; i < visibleCount; i++) {
             final int index = i;
             TextView chip = new TextView(ctx);
             chip.setText(categories.get(i).name);
@@ -222,10 +351,62 @@ public class BookStoreFragment extends Fragment {
             chip.setLayoutParams(lp);
 
             applyChipStyle(chip, i == selectedIndex);
-
             chip.setOnClickListener(v -> selectCategory(index));
             chipGroup.addView(chip);
         }
+
+        // More categories chip
+        if (categories.size() > 4) {
+            TextView moreChip = new TextView(ctx);
+            moreChip.setText("更多分类 ▶");
+            moreChip.setTextSize(13);
+            moreChip.setSingleLine(true);
+            moreChip.setPadding(dp20, dp8, dp20, dp8);
+            moreChip.setBackgroundResource(R.drawable.bg_more_categories);
+            moreChip.setTextColor(0xFF6B5A53);
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(dp4, 0, dp4, 0);
+            moreChip.setLayoutParams(lp);
+
+            moreChip.setOnClickListener(v -> showMoreCategoriesPopup(moreChip));
+            chipGroup.addView(moreChip);
+        }
+    }
+
+    private void showMoreCategoriesPopup(View anchor) {
+        if (categories == null || categories.size() <= 4) return;
+        Context ctx = requireContext();
+
+        LinearLayout container = new LinearLayout(ctx);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setBackgroundResource(R.drawable.bg_popup_card);
+        int padV = dp(ctx, 6);
+        container.setPadding(0, padV, 0, padV);
+
+        for (int i = 4; i < categories.size(); i++) {
+            final int index = i;
+            TextView item = new TextView(ctx);
+            item.setText(categories.get(i).name);
+            item.setTextSize(14);
+            item.setTextColor(0xFF221C19);
+            int padH = dp(ctx, 20);
+            int padItem = dp(ctx, 12);
+            item.setPadding(padH, padItem, padH, padItem);
+            item.setBackgroundResource(R.drawable.bg_item_sel);
+            item.setOnClickListener(v -> {
+                selectCategory(index);
+            });
+            container.addView(item);
+        }
+
+        PopupWindow pw = new PopupWindow(container,
+                dp(ctx, 160),
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        pw.setElevation(8);
+        pw.showAsDropDown(anchor, 0, 0);
     }
 
     private void applyChipStyle(TextView chip, boolean selected) {
@@ -241,7 +422,6 @@ public class BookStoreFragment extends Fragment {
         }
     }
 
-    /** 电纸书模式切换时由 LocalBookshelfActivity 调用 */
     public void onEinkModeChanged() {
         if (getView() == null) return;
         boolean eink = Config.createConfig(requireContext()).isEinkMode();
@@ -256,8 +436,10 @@ public class BookStoreFragment extends Fragment {
         buildChips();
         showBooksForIndex(index);
         chipGroup.post(() -> {
-            View chip = chipGroup.getChildAt(index);
-            if (chip != null) scrollChips.smoothScrollTo(chip.getLeft(), 0);
+            if (index < chipGroup.getChildCount()) {
+                View chip = chipGroup.getChildAt(index);
+                if (chip != null) scrollChips.smoothScrollTo(chip.getLeft(), 0);
+            }
         });
     }
 
@@ -273,6 +455,8 @@ public class BookStoreFragment extends Fragment {
         layoutError.setVisibility(View.GONE);
         swipeRefresh.setVisibility(View.GONE);
         scrollChips.setVisibility(View.GONE);
+        if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);
+        if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.GONE);
     }
 
     private void showError() {
@@ -281,10 +465,161 @@ public class BookStoreFragment extends Fragment {
         layoutError.setVisibility(View.VISIBLE);
         swipeRefresh.setVisibility(View.GONE);
         scrollChips.setVisibility(View.GONE);
+        if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);
+        if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.GONE);
     }
 
     private static int dp(Context ctx, int dp) {
         return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
+    }
+
+    // ── Banner Adapter ────────────────────────────────────────────────────────
+
+    static class BannerAdapter extends RecyclerView.Adapter<BannerAdapter.VH> {
+
+        interface OnItemClickListener { void onClick(RankBook book); }
+
+        private final List<RankBook> books;
+        private OnItemClickListener listener;
+
+        BannerAdapter(List<RankBook> books) {
+            this.books = books;
+        }
+
+        void setOnItemClickListener(OnItemClickListener l) {
+            this.listener = l;
+        }
+
+        @NonNull
+        @Override
+        public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // Build banner item layout programmatically
+            FrameLayout frame = new FrameLayout(parent.getContext());
+            frame.setLayoutParams(new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+
+            // Full cover image
+            ImageView ivCover = new ImageView(parent.getContext());
+            ivCover.setLayoutParams(new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT));
+            ivCover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            frame.addView(ivCover);
+
+            // Gradient overlay
+            View gradient = new View(parent.getContext());
+            gradient.setLayoutParams(new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT));
+            gradient.setBackgroundResource(R.drawable.bg_banner_gradient);
+            frame.addView(gradient);
+
+            // Text overlay
+            LinearLayout textArea = new LinearLayout(parent.getContext());
+            FrameLayout.LayoutParams textLp = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT);
+            textLp.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.START;
+            textArea.setLayoutParams(textLp);
+            textArea.setOrientation(LinearLayout.VERTICAL);
+            int pad = dp(parent.getContext(), 14);
+            textArea.setPadding(pad, pad, pad, pad);
+
+            // Category tag
+            TextView tvCategory = new TextView(parent.getContext());
+            tvCategory.setTextSize(9);
+            tvCategory.setTextColor(0xFFFFFFFF);
+            tvCategory.setBackgroundColor(0x66000000);
+            int tagPadH = dp(parent.getContext(), 6);
+            int tagPadV = dp(parent.getContext(), 2);
+            tvCategory.setPadding(tagPadH, tagPadV, tagPadH, tagPadV);
+            textArea.addView(tvCategory);
+
+            // Title
+            TextView tvTitle = new TextView(parent.getContext());
+            tvTitle.setTextSize(17);
+            tvTitle.setTypeface(null, Typeface.BOLD);
+            tvTitle.setTextColor(0xFFFFFFFF);
+            tvTitle.setMaxLines(3);
+            tvTitle.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            titleLp.topMargin = dp(parent.getContext(), 8);
+            tvTitle.setLayoutParams(titleLp);
+            textArea.addView(tvTitle);
+
+            // Author
+            TextView tvAuthor = new TextView(parent.getContext());
+            tvAuthor.setTextSize(12);
+            tvAuthor.setTextColor(0xCCFFFFFF);
+            tvAuthor.setMaxLines(1);
+            tvAuthor.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams authorLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            authorLp.topMargin = dp(parent.getContext(), 4);
+            tvAuthor.setLayoutParams(authorLp);
+            textArea.addView(tvAuthor);
+
+            // Read button
+            TextView btnRead = new TextView(parent.getContext());
+            btnRead.setTextSize(12);
+            btnRead.setTextColor(0xFFFFFFFF);
+            btnRead.setBackgroundResource(R.drawable.bg_read_btn_outline);
+            btnRead.setText("立即阅读 →");
+            int btnPadH = dp(parent.getContext(), 12);
+            int btnPadV = dp(parent.getContext(), 5);
+            btnRead.setPadding(btnPadH, btnPadV, btnPadH, btnPadV);
+            LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            btnLp.topMargin = dp(parent.getContext(), 10);
+            btnRead.setLayoutParams(btnLp);
+            textArea.addView(btnRead);
+
+            frame.addView(textArea);
+
+            return new VH(frame, ivCover, tvCategory, tvTitle, tvAuthor);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull VH holder, int position) {
+            RankBook book = books.get(position);
+            holder.tvTitle.setText(book.title);
+            holder.tvAuthor.setText(book.author != null ? book.author : "");
+            holder.tvCategory.setVisibility(View.GONE); // Category tag hidden by default
+
+            if (book.cover != null && !book.cover.isEmpty()) {
+                Glide.with(holder.ivCover.getContext())
+                        .load(book.cover)
+                        .placeholder(R.mipmap.cover_default_new)
+                        .error(R.mipmap.cover_default_new)
+                        .into(holder.ivCover);
+            } else {
+                holder.ivCover.setImageResource(R.mipmap.cover_default_new);
+            }
+
+            holder.itemView.setOnClickListener(v -> {
+                if (listener != null) listener.onClick(book);
+            });
+        }
+
+        @Override
+        public int getItemCount() { return books.size(); }
+
+        static class VH extends RecyclerView.ViewHolder {
+            final ImageView ivCover;
+            final TextView tvCategory, tvTitle, tvAuthor;
+            VH(View v, ImageView ivCover, TextView tvCategory, TextView tvTitle, TextView tvAuthor) {
+                super(v);
+                this.ivCover = ivCover;
+                this.tvCategory = tvCategory;
+                this.tvTitle = tvTitle;
+                this.tvAuthor = tvAuthor;
+            }
+        }
     }
 
     // ── 网格 Adapter ─────────────────────────────────────────────────────────
@@ -317,7 +652,12 @@ public class BookStoreFragment extends Fragment {
         public void onBindViewHolder(@NonNull VH holder, int position) {
             RankBook book = books.get(position);
             holder.tvTitle.setText(book.title);
-            holder.tvIntro.setText(book.intro);
+            if (holder.tvAuthor != null) {
+                holder.tvAuthor.setText(book.author != null ? book.author : "");
+            }
+            if (holder.tvReads != null) {
+                holder.tvReads.setText(formatReads(book.reads));
+            }
             if (book.cover != null && !book.cover.isEmpty()) {
                 Glide.with(holder.ivCover.getContext())
                         .load(book.cover)
@@ -333,17 +673,32 @@ public class BookStoreFragment extends Fragment {
             });
         }
 
+        private String formatReads(String reads) {
+            if (reads == null || reads.isEmpty()) return "";
+            try {
+                long num = Long.parseLong(reads.replaceAll("[^0-9]", ""));
+                if (num >= 10000) {
+                    double wan = num / 10000.0;
+                    return String.format("%.1f万好评", wan);
+                }
+                return reads;
+            } catch (NumberFormatException e) {
+                return reads;
+            }
+        }
+
         @Override
         public int getItemCount() { return books == null ? 0 : books.size(); }
 
         static class VH extends RecyclerView.ViewHolder {
             final ImageView ivCover;
-            final TextView tvTitle, tvIntro;
+            final TextView tvTitle, tvAuthor, tvReads;
             VH(View v) {
                 super(v);
                 ivCover = v.findViewById(R.id.iv_cover);
                 tvTitle = v.findViewById(R.id.tv_title);
-                tvIntro = v.findViewById(R.id.tv_intro);
+                tvAuthor = v.findViewById(R.id.tv_author);
+                tvReads = v.findViewById(R.id.tv_reads);
             }
         }
     }

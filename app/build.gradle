@@ -108,6 +108,7 @@ dependencies {
     implementation rootProject.ext.dependencies["gson"]
     implementation rootProject.ext.dependencies["glide"]
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
     implementation 'com.github.supertaohaili:MediaLoader:1.0.0'
     implementation(name: "refresh-release", ext: "aar")
     implementation project(':book')

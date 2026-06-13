@@ -3,10 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="5dp"
+    android:layout_margin="3dp"
     app:cardBackgroundColor="#ffffff"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="1dp"
     app:cardUseCompatPadding="false">
 
     <RelativeLayout
@@ -18,30 +18,48 @@
         <ImageView
             android:id="@+id/iv_cover"
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="120dp"
             android:scaleType="centerCrop"
             android:src="@mipmap/cover_default_new"
             android:contentDescription="封面" />
 
-        <!-- 番茄徽章（封面右上角） -->
+        <!-- 番茄原创徽章（封面右上角） -->
         <TextView
             android:id="@+id/v_tomato_badge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignTop="@id/iv_cover"
             android:layout_alignParentRight="true"
-            android:layout_margin="4dp"
+            android:layout_margin="3dp"
             android:background="#E5492C"
-            android:paddingLeft="5dp"
-            android:paddingRight="5dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
             android:paddingTop="2dp"
             android:paddingBottom="2dp"
-            android:text="番茄"
+            android:text="番茄原创"
             android:textColor="#FFFFFF"
-            android:textSize="9sp"
+            android:textSize="8sp"
             android:visibility="gone" />
 
-        <!-- 新章节 badge（封面左下角，红色条） -->
+        <!-- 本地书标签（封面右上角，覆盖番茄徽章位置） -->
+        <TextView
+            android:id="@+id/tv_local_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@id/iv_cover"
+            android:layout_alignParentRight="true"
+            android:layout_margin="3dp"
+            android:background="@color/color_local_badge"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="本地"
+            android:textColor="#FFFFFF"
+            android:textSize="8sp"
+            android:visibility="gone" />
+
+        <!-- 新章节 badge（封面左下角） -->
         <TextView
             android:id="@+id/tv_update_badge"
             android:layout_width="wrap_content"
@@ -58,11 +76,11 @@
             android:textStyle="bold"
             android:visibility="gone" />
 
-        <!-- 下载中遮罩（封面正中央） -->
+        <!-- 下载中遮罩 -->
         <TextView
             android:id="@+id/tv_downloading"
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="120dp"
             android:layout_alignTop="@id/iv_cover"
             android:background="#99000000"
             android:gravity="center"
@@ -72,16 +90,16 @@
             android:textStyle="bold"
             android:visibility="gone" />
 
-        <!-- 书名 + 进度 -->
+        <!-- 书名 + 进度文字 + 进度条 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/iv_cover"
             android:orientation="vertical"
-            android:paddingLeft="6dp"
-            android:paddingRight="6dp"
-            android:paddingTop="5dp"
-            android:paddingBottom="6dp">
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="5dp">
 
             <TextView
                 android:id="@+id/tv_name"
@@ -97,18 +115,40 @@
                 android:id="@+id/tv_msg"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="1dp"
                 android:ellipsize="end"
                 android:lines="1"
                 android:textColor="@color/text_secondary"
                 android:textSize="10sp" />
+
+            <!-- 进度条（轨道 + 填充） -->
+            <FrameLayout
+                android:id="@+id/fl_progress_bar"
+                android:layout_width="match_parent"
+                android:layout_height="3dp"
+                android:layout_marginTop="3dp"
+                android:layout_marginBottom="1dp">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="3dp"
+                    android:background="@drawable/bg_progress_track" />
+
+                <View
+                    android:id="@+id/v_progress_fill"
+                    android:layout_width="0dp"
+                    android:layout_height="3dp"
+                    android:background="@color/colorPrimary" />
+
+            </FrameLayout>
+
         </LinearLayout>
 
-        <!-- 删除模式遮罩（覆盖封面区域） -->
+        <!-- 删除模式遮罩 -->
         <LinearLayout
             android:id="@+id/llt_del"
             android:layout_width="match_parent"
-            android:layout_height="140dp"
+            android:layout_height="120dp"
             android:layout_alignTop="@id/iv_cover"
             android:background="#AA000000"
             android:gravity="center"

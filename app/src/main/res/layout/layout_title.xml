@@ -3,13 +3,17 @@
     android:id="@+id/title_bar"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:minHeight="56dp"
     android:background="#FFFFFF"
-    android:elevation="0dp">
+    android:paddingLeft="12dp"
+    android:paddingRight="4dp">
 
+    <!-- 返回按钮，供子页面使用 -->
     <ImageButton
         android:id="@+id/ib_back"
         android:layout_width="wrap_content"
         android:layout_height="56dp"
+        android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
         android:background="@drawable/bg_item_sel"
         android:contentDescription="@string/app_name"
@@ -20,6 +24,21 @@
         android:src="@drawable/img_back"
         android:tint="@color/text_primary" />
 
+    <!-- 电纸书模式开关，左侧，仅主书架界面显示 -->
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/sw_eink"
+        android:layout_width="wrap_content"
+        android:layout_height="56dp"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        android:paddingLeft="0dp"
+        android:paddingRight="8dp"
+        android:text="E-ink"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
+    <!-- 标题：居中 -->
     <TextView
         android:id="@+id/tv_title"
         android:layout_width="wrap_content"
@@ -31,47 +50,61 @@
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <!-- 更多菜单，右侧最末 -->
-    <ImageButton
-        android:id="@+id/ib_more"
+    <!-- 右侧功能区：横向排列 -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="56dp"
         android:layout_alignParentRight="true"
         android:layout_centerVertical="true"
-        android:background="@drawable/bg_item_sel"
-        android:contentDescription="@string/app_name"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
-        android:scaleType="center"
-        android:visibility="gone"
-        android:src="@drawable/img_more"
-        android:tint="@color/text_primary" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <!-- WebDAV 自动同步开关，位于更多菜单左侧，仅主书架界面显示 -->
-    <androidx.appcompat.widget.SwitchCompat
-        android:id="@+id/sw_webdav"
-        android:layout_width="wrap_content"
-        android:layout_height="56dp"
-        android:layout_toLeftOf="@id/ib_more"
-        android:layout_centerVertical="true"
-        android:paddingLeft="8dp"
-        android:paddingRight="4dp"
-        android:text="同步"
-        android:textColor="@color/text_secondary"
-        android:textSize="11sp"
-        android:visibility="gone" />
+        <!-- 同步时间标签（仅自动同步开启时显示） -->
+        <TextView
+            android:id="@+id/tv_sync_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="4dp"
+            android:textColor="@color/text_hint"
+            android:textSize="10sp"
+            android:visibility="gone" />
 
-    <!-- 电纸书模式开关，左侧，仅主书架界面显示 -->
-    <androidx.appcompat.widget.SwitchCompat
-        android:id="@+id/sw_eink"
-        android:layout_width="wrap_content"
-        android:layout_height="56dp"
-        android:layout_alignParentLeft="true"
-        android:layout_centerVertical="true"
-        android:paddingLeft="12dp"
-        android:paddingRight="8dp"
-        android:text="E-ink"
-        android:textColor="@color/text_secondary"
-        android:textSize="11sp"
-        android:visibility="gone" />
+        <!-- WebDAV 自动同步开关 -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/sw_webdav"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:paddingLeft="4dp"
+            android:paddingRight="4dp"
+            android:text="同步"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
+        <!-- 更多菜单 -->
+        <ImageButton
+            android:id="@+id/ib_more"
+            android:layout_width="40dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_item_sel"
+            android:contentDescription="@string/app_name"
+            android:scaleType="center"
+            android:visibility="gone"
+            android:src="@drawable/img_more"
+            android:tint="@color/text_primary" />
+
+        <!-- 书城搜索图标 -->
+        <ImageButton
+            android:id="@+id/ib_search"
+            android:layout_width="40dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_item_sel"
+            android:contentDescription="@string/app_name"
+            android:scaleType="center"
+            android:visibility="gone"
+            android:src="@android:drawable/ic_menu_search"
+            android:tint="@color/text_primary" />
+
+    </LinearLayout>
+
 </RelativeLayout>

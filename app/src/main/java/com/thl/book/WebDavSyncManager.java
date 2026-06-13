@@ -71,6 +71,7 @@ public class WebDavSyncManager {
     public static class ReadingStats {
         public String weekStart;
         public long weeklySeconds;
+        public int cumulativeDays;
     }
 
     /** Lightweight progress record stored in tomato_progress.json. */
@@ -199,12 +200,14 @@ public class WebDavSyncManager {
                 if (remoteStats != null) {
                     ReadingStatsManager.mergeFromSync(context,
                             remoteStats.weeklySeconds, remoteStats.weekStart);
+                    ReadingStatsManager.mergeCumulativeDaysFromSync(context, remoteStats.cumulativeDays);
                 }
             }
             // Upload current (merged) stats
             ReadingStats localStats = new ReadingStats();
             localStats.weekStart = ReadingStatsManager.getCurrentWeekStart();
             localStats.weeklySeconds = ReadingStatsManager.getWeeklySeconds(context);
+            localStats.cumulativeDays = ReadingStatsManager.getCumulativeDays(context);
             putFile(client, auth, statsUrl, gson.toJson(localStats));
             log.append("阅读时间已同步\n");
 

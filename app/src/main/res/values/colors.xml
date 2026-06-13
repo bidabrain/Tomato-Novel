@@ -18,4 +18,6 @@
     <color name="text_primary">#221C19</color>
     <color name="text_secondary">#6B5A53</color>
     <color name="text_hint">#A89890</color>
+    <!-- 本地书标签背景色 -->
+    <color name="color_local_badge">#6B5A53</color>
 </resources>

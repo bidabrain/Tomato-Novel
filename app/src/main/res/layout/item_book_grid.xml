@@ -5,12 +5,12 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_item_sel"
     android:orientation="vertical"
-    android:padding="6dp">
+    android:padding="4dp">
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
-        android:layout_height="150dp"
-        app:cardCornerRadius="10dp"
+        android:layout_height="120dp"
+        app:cardCornerRadius="8dp"
         app:cardElevation="0dp">
 
         <ImageView
@@ -27,21 +27,52 @@
         android:id="@+id/tv_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="5dp"
         android:ellipsize="end"
         android:lines="2"
         android:textColor="@color/text_primary"
-        android:textSize="12sp"
+        android:textSize="11sp"
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/tv_author"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:ellipsize="end"
+        android:lines="1"
+        android:textColor="@color/text_secondary"
+        android:textSize="10sp" />
+
+    <!-- 保留旧 tv_intro id for backward compat (hidden) -->
+    <TextView
         android:id="@+id/tv_intro"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:ellipsize="end"
-        android:lines="2"
-        android:textColor="@color/text_secondary"
-        android:textSize="10sp" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:src="@drawable/ic_star_small"
+            android:contentDescription=""
+            android:tint="#FF9800" />
+
+        <TextView
+            android:id="@+id/tv_reads"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="2dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="10sp" />
+
+    </LinearLayout>
 
 </LinearLayout>

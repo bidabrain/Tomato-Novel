@@ -5,6 +5,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,7 +15,13 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -22,11 +31,9 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.bumptech.glide.Glide;
@@ -46,6 +53,7 @@ import com.thl.reader.util.FileUtils;
 import com.thl.reader.util.ReadingStatsManager;
 
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.thl.reader.db.DB;
 
@@ -54,6 +62,9 @@ import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -65,6 +76,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -90,32 +103,52 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
     private TextView tvUpdateStatus;
 
-    // 顶部双卡片行
+    // 新视图字段
+    private TextView tvGreeting;
+    private View ibHistory;
+    private androidx.cardview.widget.CardView cardContinueBanner;
+    private TextView tvBannerTitle, tvBannerProgress;
+    private ImageView ivBannerCover;
+    private View vBannerProgressFill;
+    private View rowStats;
+    private TextView tvStatWeekly, tvStatDays, tvStatBooks;
+    private TextView tvManage, tvSort;
+    private TextView tvSyncTime;
+    private View ibSearch;
+    private View rowShelfHeader;
+
+    // 排序
+    private static final int SORT_RECENT_READ  = 0;
+    private static final int SORT_RECENT_ADDED = 1;
+    private int currentSort = SORT_RECENT_READ;
+
+    // 搜索历史
+    private static final String PREF_SEARCH_HISTORY = "search_history";
+    private static final int MAX_HISTORY = 10;
+
+    // 旧 ID 兼容（view 对象保持以防 applyEinkMode 等方法引用）
     private View rowTopCards;
-    private TextView tvWeeklyTime;   // gone，仅保留 id 兼容性
+    private View cardContinueReading;
+    private View cardWeeklyTime;
+    private TextView tvWeeklyTime;
     private TextView tvWeeklyNumber;
     private TextView tvWeeklyUnit;
     private TextView tvSyncLabel;
-    // "上次读到"卡片
-    private View cardContinueReading;
     private TextView tvContinueTitle;
     private TextView tvContinueProgress;
     private ImageView ivContinueCover;
-    private View rowShelfHeader;
 
     private CustomPopWindow popWindow;
     private boolean isDel = false;
     private boolean coverRefreshDone = false;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    // 独立线程用于下载，避免阻塞书架刷新
     private final ExecutorService downloadExecutor = Executors.newSingleThreadExecutor();
 
     private final ActivityResultLauncher<String> importLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             uri -> { if (uri != null) importBookshelf(uri); });
 
-    // 有"下载中"条目时每3秒轮询一次数据库
     private final Handler pollHandler = new Handler(Looper.getMainLooper());
     private final Runnable pollRunnable = new Runnable() {
         @Override
@@ -150,9 +183,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             int current = intent.getIntExtra(UpdateChecker.EXTRA_CURRENT, 0);
             int total = intent.getIntExtra(UpdateChecker.EXTRA_TOTAL, 0);
             String bookName = intent.getStringExtra(UpdateChecker.EXTRA_BOOK_NAME);
-            android.util.Log.d("TomUpdateDbg", "onReceive → isFinished=" + isFinished
-                    + " cur=" + current + "/" + total + " name='" + bookName + "'");
-            // 立即触发一次轮询刷新
             pollHandler.removeCallbacks(pollRunnable);
             pollHandler.post(pollRunnable);
             if (isFinished) {
@@ -198,11 +228,41 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             return false;
         });
 
+        // 新视图
+        tvGreeting = findViewById(R.id.tv_greeting);
+        ibHistory = findViewById(R.id.ib_history);
+        cardContinueBanner = findViewById(R.id.card_continue_banner);
+        tvBannerTitle = findViewById(R.id.tv_banner_title);
+        tvBannerProgress = findViewById(R.id.tv_banner_progress);
+        ivBannerCover = findViewById(R.id.iv_banner_cover);
+        vBannerProgressFill = findViewById(R.id.v_banner_progress_fill);
+        rowStats = findViewById(R.id.row_stats);
+        tvStatWeekly = findViewById(R.id.tv_stat_weekly);
+        tvStatDays = findViewById(R.id.tv_stat_days);
+        tvStatBooks = findViewById(R.id.tv_stat_books);
+        tvManage = findViewById(R.id.tv_manage);
+        tvSort = findViewById(R.id.tv_sort);
+        tvSyncTime = findViewById(R.id.tv_sync_time);
+        ibSearch = findViewById(R.id.ib_search);
+        rowShelfHeader = findViewById(R.id.row_shelf_header);
+
+        // 旧 ID 兼容
+        rowTopCards = findViewById(R.id.row_top_cards);
+        cardContinueReading = findViewById(R.id.card_continue_reading);
+        cardWeeklyTime = findViewById(R.id.card_weekly_time);
+        tvWeeklyTime = findViewById(R.id.tv_weekly_time);
+        tvWeeklyNumber = findViewById(R.id.tv_weekly_number);
+        tvWeeklyUnit = findViewById(R.id.tv_weekly_unit);
+        tvSyncLabel = findViewById(R.id.tv_sync_label);
+        tvContinueTitle = findViewById(R.id.tv_continue_title);
+        tvContinueProgress = findViewById(R.id.tv_continue_progress);
+
         etSearch = (EditText) findViewById(R.id.et_search);
         etSearch.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 String query = etSearch.getText().toString().trim();
                 if (!TextUtils.isEmpty(query)) {
+                    saveSearchHistory(query);
                     Intent intent = new Intent(this, SearchResultActivity.class);
                     intent.putExtra(SearchResultActivity.EXTRA_QUERY, query);
                     startActivity(intent);
@@ -211,6 +271,10 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             }
             return false;
         });
+
+        if (ibHistory != null) {
+            ibHistory.setOnClickListener(v -> showHistoryPopup());
+        }
 
         refreshLayout = (TwinklingRefreshLayout) findViewById(R.id.refresh);
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerview);
@@ -225,31 +289,30 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         tvUpdateStatus = findViewById(R.id.tv_update_status);
 
-        // 顶部双卡片行
-        rowTopCards = findViewById(R.id.row_top_cards);
-        tvWeeklyTime = findViewById(R.id.tv_weekly_time);
-        tvWeeklyNumber = findViewById(R.id.tv_weekly_number);
-        tvWeeklyUnit = findViewById(R.id.tv_weekly_unit);
-        tvSyncLabel = findViewById(R.id.tv_sync_label);
-        // "上次读到"卡片
-        cardContinueReading = findViewById(R.id.card_continue_reading);
-        tvContinueTitle = findViewById(R.id.tv_continue_title);
-        tvContinueProgress = findViewById(R.id.tv_continue_progress);
-        ivContinueCover = findViewById(R.id.iv_continue_cover);
-        rowShelfHeader = findViewById(R.id.row_shelf_header);
+        // 书架操作
+        if (cardContinueBanner != null) {
+            cardContinueBanner.setOnClickListener(v -> {
+                if (bookLists != null) {
+                    for (BookList b : bookLists) {
+                        if (b.getLastReadAt() > 0 && b.getBookpath() != null && !b.getBookpath().isEmpty()) {
+                            ReadActivity.openBook(b, LocalBookshelfActivity.this);
+                            break;
+                        }
+                    }
+                }
+            });
+        }
 
-        cardContinueReading.setOnClickListener(v -> {
-            // 打开最近阅读的书
-            if (bookLists != null && !bookLists.isEmpty()) {
-                BookList lastRead = null;
-                for (BookList b : bookLists) {
-                    if (b.getLastReadAt() > 0) { lastRead = b; break; }
-                }
-                if (lastRead != null && lastRead.getBookpath() != null && !lastRead.getBookpath().isEmpty()) {
-                    ReadActivity.openBook(lastRead, LocalBookshelfActivity.this);
-                }
-            }
-        });
+        if (tvManage != null) {
+            tvManage.setOnClickListener(v -> {
+                isDel = !isDel;
+                adapter.notifyDataSetChanged();
+            });
+        }
+
+        if (tvSort != null) {
+            tvSort.setOnClickListener(v -> showSortPopup());
+        }
 
         // 电纸书模式开关
         swEink = findViewById(R.id.sw_eink);
@@ -257,9 +320,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         Config config = Config.createConfig(this);
         swEink.setChecked(config.isEinkMode());
         applyEinkMode(config.isEinkMode());
+        applySwitchColors();
         swEink.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // 只存 eink 标志位，不修改 pageMode/bookBg
-            // （阅读界面在 openBook() 完成后再动态应用，避免 PageWidget 状态非法）
             config.setEinkMode(isChecked);
             applyEinkMode(isChecked);
             if (bookStoreFragment != null) {
@@ -278,7 +340,18 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         });
     }
 
-    /** 如果 WebDAV URL 未配置，锁定（变灰不可点击）同步开关 */
+    private void applySwitchColors() {
+        int[][] states = {{android.R.attr.state_checked}, {}};
+        int[] trackColors = {getResources().getColor(R.color.colorPrimary), 0xFFDDDDDD};
+        ColorStateList trackTint = new ColorStateList(states, trackColors);
+        if (swEink != null && swEink.getTrackDrawable() != null) {
+            DrawableCompat.setTintList(swEink.getTrackDrawable(), trackTint);
+        }
+        if (swWebDav != null && swWebDav.getTrackDrawable() != null) {
+            DrawableCompat.setTintList(swWebDav.getTrackDrawable(), trackTint);
+        }
+    }
+
     private void refreshWebDavSwitchEnabled() {
         if (swWebDav == null) return;
         boolean hasUrl = !WebDavConfig.getUrl(this).isEmpty();
@@ -288,49 +361,51 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         refreshSyncLabel();
     }
 
-    /** 根据自动同步是否开启及上次同步时间，刷新本周阅读卡片底部标签 */
     private void refreshSyncLabel() {
-        if (tvSyncLabel == null) return;
-        if (!WebDavConfig.isEnabled(this)) {
+        // Update header sync time label
+        if (tvSyncTime != null) {
+            if (!WebDavConfig.isEnabled(this)) {
+                tvSyncTime.setVisibility(View.GONE);
+            } else {
+                long lastSync = WebDavConfig.getLastSyncAt(this);
+                String text;
+                if (lastSync == 0) {
+                    text = "从未同步";
+                } else {
+                    long diffMs = System.currentTimeMillis() - lastSync;
+                    long minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(diffMs);
+                    long hours   = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(diffMs);
+                    long days    = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diffMs);
+                    String ago;
+                    if (minutes < 1)     ago = "刚刚";
+                    else if (hours < 1)  ago = minutes + "分前";
+                    else if (days < 1)   ago = hours + "时前";
+                    else                 ago = days + "天前";
+                    text = "同步:" + ago;
+                }
+                tvSyncTime.setText(text);
+                tvSyncTime.setVisibility(View.VISIBLE);
+            }
+        }
+        // Also keep the legacy tvSyncLabel (now hidden, but keep logic)
+        if (tvSyncLabel != null) {
             tvSyncLabel.setVisibility(View.GONE);
-            return;
         }
-        long lastSync = WebDavConfig.getLastSyncAt(this);
-        String text;
-        if (lastSync == 0) {
-            text = "同步：从未";
-        } else {
-            long diffMs = System.currentTimeMillis() - lastSync;
-            long minutes = java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(diffMs);
-            long hours   = java.util.concurrent.TimeUnit.MILLISECONDS.toHours(diffMs);
-            long days    = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diffMs);
-            String ago;
-            if (minutes < 1)     ago = "刚刚";
-            else if (hours < 1)  ago = minutes + " 分钟前";
-            else if (days < 1)   ago = hours + " 小时前";
-            else                 ago = days + " 天前";
-            text = "同步：" + ago;
-        }
-        tvSyncLabel.setText(text);
-        tvSyncLabel.setVisibility(View.VISIBLE);
     }
 
     private void applyEinkMode(boolean eink) {
-        // 整体背景
         View root = findViewById(R.id.activity_album);
         if (root != null) {
             root.setBackgroundColor(eink ? 0xFFFFFFFF : getResources().getColor(R.color.bg_activity));
         }
-        // 本周阅读卡片样式
-        View cardWeeklyTime = findViewById(R.id.card_weekly_time);
-        if (cardWeeklyTime != null) {
-            cardWeeklyTime.setBackgroundResource(
-                    eink ? R.drawable.bg_continue_card_eink : R.drawable.bg_continue_card);
+        // Banner card background
+        if (cardContinueBanner != null) {
+            cardContinueBanner.setCardBackgroundColor(
+                    eink ? 0xFFEEEEEE : 0xFFFBE6DD);
         }
-        // 上次读到卡片样式
-        if (cardContinueReading != null) {
-            cardContinueReading.setBackgroundResource(
-                    eink ? R.drawable.bg_continue_card_eink : R.drawable.bg_continue_card);
+        // Stats row background
+        if (rowStats != null) {
+            rowStats.setBackgroundResource(eink ? R.drawable.bg_continue_card_eink : R.drawable.bg_card_rounded);
         }
     }
 
@@ -339,8 +414,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         refreshLayout.setOnRefreshListener(new RefreshListenerAdapter() {
             @Override
             public void onRefresh(final TwinklingRefreshLayout refreshLayout) {
-                // 立即显示横条并启动检查，不等待书单重载完成
-                android.util.Log.d("TomUpdateDbg", "onRefresh → isRunning=" + UpdateChecker.isRunning());
                 showUpdateBanner(true, null, 0, 0);
                 if (!UpdateChecker.isRunning()) {
                     UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
@@ -354,13 +427,12 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         adapter.notifyDataSetChanged();
                         updateContinueCard();
                         refreshLayout.finishRefreshing();
-                        // 不重置横条 — 由 BroadcastReceiver 驱动进度更新
                     });
                 });
             }
         });
 
-        mRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
+        mRecyclerView.setLayoutManager(new GridLayoutManager(this, 4));
         adapter = new SingleAdapter<BookList>(LocalBookshelfActivity.this, R.layout.item_book) {
             @Override
             protected void bindData(SuperViewHolder holder, BookList book) {
@@ -371,7 +443,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         executor.execute(() -> {
                             DB.bookList().deleteById(book.getId());
                             WebDavConfig.markBookshelfModified(LocalBookshelfActivity.this);
-                            // 仅删除番茄下载的 TXT 文件，本地导入的书保留源文件
                             if (book.getIsTomato() == 1) {
                                 String path = book.getBookpath();
                                 if (path != null && !path.isEmpty()) {
@@ -396,6 +467,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 TextView tvName = holder.getView(R.id.tv_name);
                 TextView tvMsg = holder.getView(R.id.tv_msg);
                 View tomatoBadge = holder.getView(R.id.v_tomato_badge);
+                View localBadge = holder.getView(R.id.tv_local_badge);
                 TextView tvUpdateBadge = holder.getView(R.id.tv_update_badge);
                 TextView tvDownloading = holder.getView(R.id.tv_downloading);
 
@@ -412,23 +484,19 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
                 tvName.setText(book.getBookname());
 
-                // 精确提取番茄专用格式"（新+X）"作为更新 badge，避免本地书内容误触发
                 String rawMsg = book.getMsg() != null ? book.getMsg() : "";
                 java.util.regex.Matcher badgeMatcher =
                         java.util.regex.Pattern.compile("（新\\+\\d+）").matcher(rawMsg);
                 String updateText = badgeMatcher.find() ? badgeMatcher.group() : "";
 
-                // 进度：优先用 chapterProgress；本地书无进度时不显示摘要内容
                 String progressText = "";
                 if (book.getChapterProgress() != null) {
                     progressText = book.getChapterProgress();
                 } else if (book.getIsTomato() == 1 && updateText.isEmpty()) {
-                    // 番茄书尚无进度且无更新信息时，显示 msg（如"下载中…"等状态文字）
                     progressText = rawMsg.replaceAll("（新\\+\\d+）", "").trim();
                 }
                 tvMsg.setText(progressText);
 
-                // 更新 badge
                 if (!updateText.isEmpty()) {
                     tvUpdateBadge.setText(updateText);
                     tvUpdateBadge.setVisibility(View.VISIBLE);
@@ -436,7 +504,14 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     tvUpdateBadge.setVisibility(View.GONE);
                 }
 
-                tomatoBadge.setVisibility(book.getIsTomato() == 1 ? View.VISIBLE : View.GONE);
+                // 番茄原创 / 本地 badge
+                if (book.getIsTomato() == 1) {
+                    tomatoBadge.setVisibility(View.VISIBLE);
+                    if (localBadge != null) localBadge.setVisibility(View.GONE);
+                } else {
+                    tomatoBadge.setVisibility(View.GONE);
+                    if (localBadge != null) localBadge.setVisibility(View.VISIBLE);
+                }
 
                 boolean isDownloading = book.getBookpath() == null || book.getBookpath().isEmpty();
                 holder.getRootView().setAlpha(1f);
@@ -447,6 +522,13 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     holder.getRootView().setOnClickListener(v ->
                             ReadActivity.openBook(book, LocalBookshelfActivity.this));
                 }
+
+                // 进度条填充
+                View fillView = holder.getView(R.id.v_progress_fill);
+                if (fillView != null) {
+                    int progressPct = parseProgressPercent(book.getChapterProgress());
+                    setProgressFillWidth(fillView, progressPct);
+                }
             }
         };
 
@@ -454,9 +536,41 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         adapter.setData(bookLists);
         mRecyclerView.setAdapter(adapter);
 
-        // Start update check for Fanqie books
         UpdateChecker.checkOnLaunch(this);
         showUpdateBanner(true, null, 0, 0);
+    }
+
+    /**
+     * 解析 "读至第X章 / 共Y章" 格式，返回 0-100 百分比；无法解析返回 0。
+     */
+    private int parseProgressPercent(String chapterProgress) {
+        if (chapterProgress == null) return 0;
+        java.util.regex.Matcher m =
+                java.util.regex.Pattern.compile("读至第(\\d+)章 / 共(\\d+)章")
+                        .matcher(chapterProgress);
+        if (m.find()) {
+            try {
+                int current = Integer.parseInt(m.group(1));
+                int total   = Integer.parseInt(m.group(2));
+                if (total > 0) return (int) (current * 100L / total);
+            } catch (NumberFormatException ignored) {}
+        }
+        return 0;
+    }
+
+    /**
+     * 用 post() 等待 layout 完成后再按百分比设置填充 View 宽度。
+     */
+    private void setProgressFillWidth(final View fillView, final int percent) {
+        final View parent = (View) fillView.getParent();
+        if (parent == null) return;
+        parent.post(() -> {
+            int trackWidth = parent.getWidth();
+            int fillWidth = (int) (trackWidth * percent / 100f);
+            ViewGroup.LayoutParams lp = fillView.getLayoutParams();
+            lp.width = fillWidth;
+            fillView.setLayoutParams(lp);
+        });
     }
 
     @Override
@@ -470,9 +584,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         }
 
         requestStoragePermissionThenInit();
-        // 用户可能刚从设置页面回来，URL 可能变化，刷新开关状态
         refreshWebDavSwitchEnabled();
-        // 同步横条状态（可能启动时广播在 receiver 注册前就发出了）
         showUpdateBanner(UpdateChecker.isRunning(),
                 UpdateChecker.getCurrentBookName(),
                 UpdateChecker.getCurrentBook(),
@@ -495,7 +607,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 bookLists.addAll(books);
                 adapter.notifyDataSetChanged();
                 updateContinueCard();
-                // 有下载中条目，启动轮询
+                updateGreeting();
                 boolean hasPending = false;
                 for (BookList b : books) {
                     if (b.getBookpath() == null || b.getBookpath().isEmpty()) {
@@ -515,8 +627,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private void saveLocalBooks(List<BookList> toSave) {
         for (BookList bookList : toSave) {
             if (DB.bookList().findByBookpath(bookList.getBookpath()) != null) continue;
-
-            // Read first few lines as msg preview
             try (InputStreamReader reader = new InputStreamReader(
                     new FileInputStream(bookList.getBookpath()),
                     FileUtils.getCharset(bookList.getBookpath()))) {
@@ -544,7 +654,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             List<com.thl.reader.db.BookCatalogue> chapters =
                     DB.catalogue().findByBookpath(book.getBookpath());
             if (chapters.isEmpty()) continue;
-            // 按起始位置排序
             java.util.Collections.sort(chapters,
                     (a, b) -> Long.compare(a.getBookCatalogueStartPos(), b.getBookCatalogueStartPos()));
             int currentChapter = 0;
@@ -571,31 +680,23 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 break;
 
             case R.id.ib_more:
-                View view = LayoutInflater.from(this).inflate(R.layout.view_popu2, null);
-                view.findViewById(R.id.tv_edit).setOnClickListener(this);
-                view.findViewById(R.id.tv_about).setOnClickListener(this);
-                view.findViewById(R.id.tv_donate).setOnClickListener(this);
-                view.findViewById(R.id.add_book).setOnClickListener(this);
-                view.findViewById(R.id.find_book).setOnClickListener(this);
-                view.findViewById(R.id.tv_settings).setOnClickListener(this);
-                view.findViewById(R.id.tv_export).setOnClickListener(this);
-                view.findViewById(R.id.tv_import).setOnClickListener(this);
-                view.findViewById(R.id.tv_fanqie_import).setOnClickListener(this);
-                if (popWindow == null) {
-                    popWindow = new CustomPopWindow.PopupWindowBuilder(this)
-                            .setView(view)
-                            .enableBackgroundDark(false)
-                            .setFocusable(true)
-                            .setOutsideTouchable(true)
-                            .create();
-                }
+                View menuView = LayoutInflater.from(this).inflate(R.layout.view_popu2, null);
+                // Wire clicks for LinearLayout menu items
+                menuView.findViewById(R.id.tv_about).setOnClickListener(this);
+                menuView.findViewById(R.id.tv_donate).setOnClickListener(this);
+                menuView.findViewById(R.id.add_book).setOnClickListener(this);
+                menuView.findViewById(R.id.find_book).setOnClickListener(this);
+                menuView.findViewById(R.id.tv_settings).setOnClickListener(this);
+                menuView.findViewById(R.id.tv_export).setOnClickListener(this);
+                menuView.findViewById(R.id.tv_import).setOnClickListener(this);
+                menuView.findViewById(R.id.tv_fanqie_import).setOnClickListener(this);
+                popWindow = new CustomPopWindow.PopupWindowBuilder(this)
+                        .setView(menuView)
+                        .enableBackgroundDark(false)
+                        .setFocusable(true)
+                        .setOutsideTouchable(true)
+                        .create();
                 popWindow.showAsDropDown(ib_more, 0, 0);
-                break;
-
-            case R.id.tv_edit:
-                isDel = !isDel;
-                adapter.notifyDataSetChanged();
-                popWindow.dissmiss();
                 break;
 
             case R.id.find_book:
@@ -612,7 +713,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 startActivity(new Intent(this, SettingsActivity.class));
                 popWindow.dissmiss();
                 break;
-
 
             case R.id.tv_export:
                 exportBookshelf();
@@ -640,18 +740,28 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         containerBookshelf.setVisibility(View.VISIBLE);
         containerBookStore.setVisibility(View.GONE);
         tvTitle.setText("书架");
+        tvTitle.setGravity(android.view.Gravity.CENTER);
+        tvTitle.setTextSize(18);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         ib_more.setVisibility(View.VISIBLE);
+        if (ibSearch != null) ibSearch.setVisibility(View.GONE);
         if (swEink != null) swEink.setVisibility(View.VISIBLE);
         if (swWebDav != null) swWebDav.setVisibility(View.VISIBLE);
+        updateGreeting();
     }
 
     private void showBookStore() {
         containerBookshelf.setVisibility(View.GONE);
         containerBookStore.setVisibility(View.VISIBLE);
         tvTitle.setText("书城");
+        tvTitle.setGravity(android.view.Gravity.CENTER);
+        tvTitle.setTextSize(18);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         ib_more.setVisibility(View.GONE);
+        if (ibSearch != null) ibSearch.setVisibility(View.GONE);
         if (swEink != null) swEink.setVisibility(View.GONE);
         if (swWebDav != null) swWebDav.setVisibility(View.GONE);
+        if (tvGreeting != null) tvGreeting.setVisibility(View.GONE);
 
         if (bookStoreFragment == null) {
             bookStoreFragment = new BookStoreFragment();
@@ -661,23 +771,20 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         }
     }
 
-    /** 根据 bookLists 更新顶部双卡片行（本周阅读 + 上次读到）和书架标题行的显隐 */
+    private void updateGreeting() {
+        if (tvGreeting == null) return;
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        String timeGreet = hour < 12 ? "早上好" : hour < 18 ? "下午好" : "晚上好";
+        long seconds = ReadingStatsManager.getTodaySeconds(this);
+        String timeStr = ReadingStatsManager.formatTime(seconds);
+        tvGreeting.setText(timeGreet + "，今天已阅读 " + timeStr);
+        tvGreeting.setVisibility(View.VISIBLE);
+    }
+
     private void updateContinueCard() {
-        if (cardContinueReading == null) return;
         boolean hasBooks = !bookLists.isEmpty();
 
-        // 整行显隐
-        if (rowTopCards != null) rowTopCards.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
-
-        // 本周阅读时间
-        if (tvWeeklyNumber != null) {
-            long seconds = ReadingStatsManager.getWeeklySeconds(this);
-            String[] parts = splitTimeDisplay(seconds);
-            tvWeeklyNumber.setText(parts[0]);
-            tvWeeklyUnit.setText(parts[1]);
-        }
-
-        // 上次读到
+        // Show/hide new banner card
         BookList lastRead = null;
         for (BookList b : bookLists) {
             if (b.getLastReadAt() > 0 && b.getBookpath() != null && !b.getBookpath().isEmpty()) {
@@ -685,28 +792,153 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 break;
             }
         }
-        if (lastRead != null) {
-            cardContinueReading.setVisibility(View.VISIBLE);
-            tvContinueTitle.setText(lastRead.getBookname());
-            String progress = lastRead.getChapterProgress();
-            tvContinueProgress.setText(progress != null ? progress : "");
-            String coverUrl = lastRead.getCoverUrl();
-            if (coverUrl != null && !coverUrl.isEmpty()) {
-                Glide.with(this).load(coverUrl)
-                        .placeholder(R.mipmap.cover_default_new)
-                        .error(R.mipmap.cover_default_new)
-                        .into(ivContinueCover);
+
+        if (cardContinueBanner != null) {
+            if (lastRead != null) {
+                cardContinueBanner.setVisibility(View.VISIBLE);
+                tvBannerTitle.setText(lastRead.getBookname());
+                String progress = lastRead.getChapterProgress();
+                tvBannerProgress.setText(progress != null ? progress : "");
+
+                String coverUrl = lastRead.getCoverUrl();
+                if (coverUrl != null && !coverUrl.isEmpty()) {
+                    Glide.with(this).load(coverUrl)
+                            .placeholder(R.drawable.bg_banner_no_cover)
+                            .error(R.drawable.bg_banner_no_cover)
+                            .into(ivBannerCover);
+                } else {
+                    ivBannerCover.setImageDrawable(
+                            getResources().getDrawable(R.drawable.bg_banner_no_cover));
+                }
+
+                // Progress bar fill
+                if (vBannerProgressFill != null) {
+                    int pct = parseProgressPercent(lastRead.getChapterProgress());
+                    setProgressFillWidth(vBannerProgressFill, pct);
+                }
             } else {
-                ivContinueCover.setImageResource(R.mipmap.cover_default_new);
+                cardContinueBanner.setVisibility(View.GONE);
             }
-        } else {
-            cardContinueReading.setVisibility(View.GONE);
         }
-        rowShelfHeader.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
+
+        // Stats row
+        if (rowStats != null) {
+            if (hasBooks) {
+                rowStats.setVisibility(View.VISIBLE);
+                // Weekly time
+                long seconds = ReadingStatsManager.getWeeklySeconds(this);
+                if (tvStatWeekly != null) tvStatWeekly.setText(ReadingStatsManager.formatTime(seconds));
+                // Cumulative days
+                int days = ReadingStatsManager.getCumulativeDays(this);
+                if (tvStatDays != null) tvStatDays.setText(days + "天");
+                // Book count
+                if (tvStatBooks != null) tvStatBooks.setText(bookLists.size() + "本");
+            } else {
+                rowStats.setVisibility(View.GONE);
+            }
+        }
+
+        if (rowShelfHeader != null) rowShelfHeader.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
         refreshSyncLabel();
     }
 
-    /** 后台静默修复 coverUrl 为空的番茄书，每次 app 启动只跑一次 */
+    // ──────────── 搜索历史 ────────────
+
+    private void saveSearchHistory(String query) {
+        List<String> history = loadSearchHistory();
+        history.remove(query);
+        history.add(0, query);
+        if (history.size() > MAX_HISTORY) history = history.subList(0, MAX_HISTORY);
+        JSONArray arr = new JSONArray();
+        for (String s : history) arr.put(s);
+        getSharedPreferences(PREF_SEARCH_HISTORY, MODE_PRIVATE)
+                .edit().putString("list", arr.toString()).apply();
+    }
+
+    private List<String> loadSearchHistory() {
+        String json = getSharedPreferences(PREF_SEARCH_HISTORY, MODE_PRIVATE)
+                .getString("list", "[]");
+        List<String> result = new ArrayList<>();
+        try {
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) result.add(arr.getString(i));
+        } catch (JSONException ignored) {}
+        return result;
+    }
+
+    private void showHistoryPopup() {
+        List<String> history = loadSearchHistory();
+        if (history.isEmpty()) {
+            Toast.makeText(this, "暂无搜索历史", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setBackgroundResource(R.drawable.bg_popup_card);
+        container.setPadding(0, dp(6), 0, dp(6));
+
+        for (String query : history) {
+            TextView item = new TextView(this);
+            item.setText(query);
+            item.setTextSize(14);
+            item.setTextColor(getResources().getColor(R.color.text_primary));
+            item.setPadding(dp(16), dp(12), dp(16), dp(12));
+            item.setBackgroundResource(R.drawable.bg_item_sel);
+            item.setOnClickListener(v -> {
+                etSearch.setText(query);
+                Intent intent = new Intent(this, SearchResultActivity.class);
+                intent.putExtra(SearchResultActivity.EXTRA_QUERY, query);
+                startActivity(intent);
+            });
+            container.addView(item);
+        }
+
+        PopupWindow pw = new PopupWindow(container,
+                ibHistory.getWidth() + etSearch.getWidth() + dp(4),
+                ViewGroup.LayoutParams.WRAP_CONTENT, true);
+        pw.setElevation(8);
+        pw.showAsDropDown(etSearch, 0, 0);
+    }
+
+    private int dp(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    // ──────────── 排序 ────────────
+
+    private void showSortPopup() {
+        String[] options = {"最近阅读", "最近添加"};
+        new AlertDialog.Builder(this)
+                .setTitle("排序方式")
+                .setSingleChoiceItems(options, currentSort, (dialog, which) -> {
+                    currentSort = which;
+                    dialog.dismiss();
+                    if (tvSort != null) tvSort.setText(options[which] + " ▼");
+                    executor.execute(() -> {
+                        List<BookList> books = getBooks();
+                        books = sortBooks(books);
+                        final List<BookList> sorted = books;
+                        runOnUiThread(() -> {
+                            if (isDestroyed() || isFinishing()) return;
+                            bookLists.clear();
+                            bookLists.addAll(sorted);
+                            adapter.notifyDataSetChanged();
+                        });
+                    });
+                })
+                .show();
+    }
+
+    private List<BookList> sortBooks(List<BookList> books) {
+        if (currentSort == SORT_RECENT_ADDED) {
+            Collections.sort(books, (a, b) -> Long.compare(b.getId(), a.getId()));
+        } else {
+            Collections.sort(books, (a, b) -> Long.compare(b.getLastReadAt(), a.getLastReadAt()));
+        }
+        return books;
+    }
+
     private void refreshMissingCovers(List<BookList> books) {
         if (coverRefreshDone) return;
         coverRefreshDone = true;
@@ -755,14 +987,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         if (show) {
             String text;
             if (total > 0 && current > 0 && bookName != null && !bookName.isEmpty()) {
-                // 截断书名避免过长
                 String name = bookName.length() > 12 ? bookName.substring(0, 12) + "…" : bookName;
                 text = "正在检查更新 " + current + "/" + total + "《" + name + "》";
             } else {
                 text = "正在检查更新…";
             }
-            android.util.Log.d("TomUpdateDbg", "showBanner → show=" + show
-                    + " name='" + bookName + "' cur=" + current + "/" + total + " → '" + text + "'");
             tvUpdateStatus.setText(text);
         }
     }
@@ -775,15 +1004,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         PermissionUtils.requestPermissions(this, 0, permissions, listener);
     }
 
-    /**
-     * 根据 Android 版本请求合适的存储权限，授权后再初始化数据。
-     * - API 30+（Android 11+）：需要"所有文件访问权限"（MANAGE_EXTERNAL_STORAGE）
-     * - API 23-29：请求传统读写权限
-     * - API < 23：无需运行时权限
-     */
     private void requestStoragePermissionThenInit() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11+：treader/ 位于共享存储根目录，必须有 MANAGE_EXTERNAL_STORAGE
             if (Environment.isExternalStorageManager()) {
                 initFirstData();
             } else {
@@ -801,13 +1023,12 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                         .show();
             }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // Android 6-10：请求传统读写权限
             requestPermissins(new PermissionUtils.OnPermissionListener() {
                 @Override
                 public void onPermissionGranted() { initFirstData(); }
                 @Override
                 public void onPermissionDenied(String[] deniedPermissions) {
-                    initFirstData(); // 拒绝时仍加载数据库中已有的书
+                    initFirstData();
                 }
             });
         } else {
@@ -871,7 +1092,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
     private void importBookshelf(android.net.Uri uri) {
         executor.execute(() -> {
-            // 读取 JSON
             String json;
             try (InputStream is = getContentResolver().openInputStream(uri);
                  BufferedReader reader = new BufferedReader(
@@ -886,7 +1106,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 return;
             }
 
-            // 解析
             List<BookList> imported;
             try {
                 imported = new Gson().fromJson(json,
@@ -906,19 +1125,16 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             int skipped = 0;
             for (BookList book : imported) {
                 if (book.getIsTomato() == 1 && book.getTomatoBookId() != null) {
-                    // 番茄书：无论是否已在书架，只要没有本地文件就重新下载
                     String outputPath = new File(
                             com.thl.book.download.NovelDownloadManager.getTomatoDir(this),
                             book.getBookname().replaceAll("[\\\\/:*?\"<>|]", "_") + ".txt"
                     ).getAbsolutePath();
 
-                    // 文件已存在则跳过（已正常下载完成）
                     if (new java.io.File(outputPath).exists()) { skipped++; continue; }
 
                     List<BookList> existing = DB.bookList().findByTomatoBookId(book.getTomatoBookId());
                     BookList placeholder;
                     if (!existing.isEmpty()) {
-                        // 已有残留条目，复用并重置状态触发重新下载
                         placeholder = existing.get(0);
                         placeholder.setBookpath("");
                         placeholder.setMsg("下载中…");
@@ -967,12 +1183,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 } else if (book.getIsTomato() == 0
                         && book.getBookpath() != null
                         && new File(book.getBookpath()).exists()) {
-                    // 本地书：文件存在且未导入过
                     if (DB.bookList().findByBookpath(book.getBookpath()) != null) {
                         skipped++;
                         continue;
                     }
-                    book.setId(0); // 清除旧 id，让 Room 重新分配
+                    book.setId(0);
                     DB.save(book);
                     added++;
                 } else {
@@ -1038,10 +1253,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         });
     }
 
-    /**
-     * 将秒数拆成 [数字, 单位] 两部分，分别用大/小字体显示。
-     * 例：45分 → ["45","分钟"]，2小时30分 → ["2:30","小时"]，2小时 → ["2","小时"]
-     */
     private static String[] splitTimeDisplay(long totalSeconds) {
         if (totalSeconds <= 0) return new String[]{"0", "分钟"};
         long minutes = totalSeconds / 60;
