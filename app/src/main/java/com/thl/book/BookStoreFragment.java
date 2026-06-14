@@ -1,5 +1,8 @@
 package com.thl.book;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
@@ -12,13 +15,13 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -47,8 +50,9 @@ public class BookStoreFragment extends Fragment {
     private SwipeRefreshLayout swipeRefresh;
     private View progressLoading;
     private View layoutError;
-    private HorizontalScrollView scrollChips;
     private LinearLayout chipGroup;
+    private LinearLayout expandCategories;
+    private TextView moreChip;
 
     // Banner
     private View bannerContainer;
@@ -83,8 +87,8 @@ public class BookStoreFragment extends Fragment {
         swipeRefresh = view.findViewById(R.id.swipe_refresh);
         progressLoading = view.findViewById(R.id.progress_loading);
         layoutError = view.findViewById(R.id.layout_error);
-        scrollChips = view.findViewById(R.id.scroll_chips);
         chipGroup = view.findViewById(R.id.chip_group);
+        expandCategories = view.findViewById(R.id.expand_categories);
 
         // Banner views
         bannerContainer = view.findViewById(R.id.banner_container);
@@ -275,7 +279,7 @@ public class BookStoreFragment extends Fragment {
         progressLoading.setVisibility(View.GONE);
         layoutError.setVisibility(View.GONE);
         swipeRefresh.setVisibility(View.VISIBLE);
-        scrollChips.setVisibility(View.VISIBLE);
+        chipGroup.setVisibility(View.VISIBLE);
 
         if (bannerContainer != null) bannerContainer.setVisibility(View.VISIBLE);
         if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.VISIBLE);
@@ -326,13 +330,16 @@ public class BookStoreFragment extends Fragment {
         }
     }
 
-    /** 动态生成分类 Chip，显示前4个 + 更多分类 */
+    /** 动态生成分类 Chip，显示前4个（等宽）+ 更多分类按钮，并构建展开面板 */
     private void buildChips() {
         if (getContext() == null || categories == null) return;
         chipGroup.removeAllViews();
+        expandCategories.removeAllViews();
+        expandCategories.setVisibility(View.GONE);
+        moreChip = null;
+
         Context ctx = requireContext();
         int dp8 = dp(ctx, 8);
-        int dp20 = dp(ctx, 20);
         int dp4 = dp(ctx, 4);
 
         int visibleCount = Math.min(4, categories.size());
@@ -342,11 +349,12 @@ public class BookStoreFragment extends Fragment {
             chip.setText(categories.get(i).name);
             chip.setTextSize(13);
             chip.setSingleLine(true);
-            chip.setPadding(dp20, dp8, dp20, dp8);
+            chip.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            chip.setGravity(android.view.Gravity.CENTER);
+            chip.setPadding(dp4, dp8, dp4, dp8);
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
             lp.setMargins(dp4, 0, dp4, 0);
             chip.setLayoutParams(lp);
 
@@ -355,58 +363,151 @@ public class BookStoreFragment extends Fragment {
             chipGroup.addView(chip);
         }
 
-        // More categories chip
         if (categories.size() > 4) {
-            TextView moreChip = new TextView(ctx);
-            moreChip.setText("更多分类 ▶");
+            moreChip = new TextView(ctx);
+            updateMoreChipText();
             moreChip.setTextSize(13);
             moreChip.setSingleLine(true);
-            moreChip.setPadding(dp20, dp8, dp20, dp8);
+            moreChip.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            moreChip.setGravity(android.view.Gravity.CENTER);
+            moreChip.setPadding(dp4, dp8, dp4, dp8);
             moreChip.setBackgroundResource(R.drawable.bg_more_categories);
-            moreChip.setTextColor(0xFF6B5A53);
+            moreChip.setTextColor(selectedIndex >= 4
+                    ? getResources().getColor(R.color.colorPrimary) : 0xFF6B5A53);
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
             lp.setMargins(dp4, 0, dp4, 0);
             moreChip.setLayoutParams(lp);
 
-            moreChip.setOnClickListener(v -> showMoreCategoriesPopup(moreChip));
+            moreChip.setOnClickListener(v -> toggleExpandCategories());
             chipGroup.addView(moreChip);
+
+            buildExpandedGrid(ctx, dp8, dp4);
         }
     }
 
-    private void showMoreCategoriesPopup(View anchor) {
-        if (categories == null || categories.size() <= 4) return;
-        Context ctx = requireContext();
+    private void buildExpandedGrid(Context ctx, int dp8, int dp4) {
+        int padH = dp(ctx, 12);
+        int padV = dp(ctx, 8);
+        expandCategories.setPadding(padH, padV, padH, padV);
 
-        LinearLayout container = new LinearLayout(ctx);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setBackgroundResource(R.drawable.bg_popup_card);
-        int padV = dp(ctx, 6);
-        container.setPadding(0, padV, 0, padV);
+        LinearLayout currentRow = null;
+        int countInRow = 0;
 
         for (int i = 4; i < categories.size(); i++) {
             final int index = i;
-            TextView item = new TextView(ctx);
-            item.setText(categories.get(i).name);
-            item.setTextSize(14);
-            item.setTextColor(0xFF221C19);
-            int padH = dp(ctx, 20);
-            int padItem = dp(ctx, 12);
-            item.setPadding(padH, padItem, padH, padItem);
-            item.setBackgroundResource(R.drawable.bg_item_sel);
-            item.setOnClickListener(v -> {
+
+            if (countInRow == 0) {
+                currentRow = new LinearLayout(ctx);
+                currentRow.setOrientation(LinearLayout.HORIZONTAL);
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                rowLp.setMargins(0, 0, 0, dp4 * 2);
+                currentRow.setLayoutParams(rowLp);
+                expandCategories.addView(currentRow);
+            }
+
+            TextView chip = new TextView(ctx);
+            chip.setText(categories.get(i).name);
+            chip.setTextSize(13);
+            chip.setSingleLine(true);
+            chip.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            chip.setGravity(android.view.Gravity.CENTER);
+            chip.setPadding(dp4, dp8, dp4, dp8);
+
+            LinearLayout.LayoutParams chipLp = new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            chipLp.setMargins(dp4, 0, dp4, 0);
+            chip.setLayoutParams(chipLp);
+
+            applyChipStyle(chip, index == selectedIndex);
+            chip.setOnClickListener(v -> {
                 selectCategory(index);
+                collapsePanel();
             });
-            container.addView(item);
+            currentRow.addView(chip);
+            countInRow++;
+
+            if (countInRow == 5) countInRow = 0;
         }
 
-        PopupWindow pw = new PopupWindow(container,
-                dp(ctx, 160),
-                ViewGroup.LayoutParams.WRAP_CONTENT, true);
-        pw.setElevation(8);
-        pw.showAsDropDown(anchor, 0, 0);
+        // 补齐最后一行空位
+        if (countInRow > 0 && currentRow != null) {
+            for (int i = countInRow; i < 5; i++) {
+                View spacer = new View(ctx);
+                LinearLayout.LayoutParams spLp = new LinearLayout.LayoutParams(0, 0, 1f);
+                spLp.setMargins(dp4, 0, dp4, 0);
+                spacer.setLayoutParams(spLp);
+                currentRow.addView(spacer);
+            }
+        }
+    }
+
+    private void updateMoreChipText() {
+        if (moreChip == null) return;
+        boolean expanded = expandCategories != null
+                && expandCategories.getVisibility() == View.VISIBLE;
+        moreChip.setText(expanded ? "收起 ▲" : "更多 ▼");
+    }
+
+    private void toggleExpandCategories() {
+        if (expandCategories.getVisibility() == View.VISIBLE) {
+            collapsePanel();
+        } else {
+            expandPanel();
+        }
+    }
+
+    private void expandPanel() {
+        expandCategories.setVisibility(View.VISIBLE);
+        expandCategories.measure(
+                View.MeasureSpec.makeMeasureSpec(chipGroup.getWidth(), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int targetHeight = expandCategories.getMeasuredHeight();
+        ViewGroup.LayoutParams lp = expandCategories.getLayoutParams();
+        lp.height = 0;
+        expandCategories.requestLayout();
+
+        ValueAnimator anim = ValueAnimator.ofInt(0, targetHeight);
+        anim.setDuration(220);
+        anim.setInterpolator(new DecelerateInterpolator());
+        anim.addUpdateListener(va -> {
+            lp.height = (int) va.getAnimatedValue();
+            expandCategories.requestLayout();
+        });
+        anim.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                expandCategories.requestLayout();
+            }
+        });
+        anim.start();
+        updateMoreChipText();
+    }
+
+    private void collapsePanel() {
+        int startHeight = expandCategories.getHeight();
+        ViewGroup.LayoutParams lp = expandCategories.getLayoutParams();
+
+        ValueAnimator anim = ValueAnimator.ofInt(startHeight, 0);
+        anim.setDuration(180);
+        anim.setInterpolator(new AccelerateInterpolator());
+        anim.addUpdateListener(va -> {
+            lp.height = (int) va.getAnimatedValue();
+            expandCategories.requestLayout();
+        });
+        anim.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                expandCategories.setVisibility(View.GONE);
+                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                updateMoreChipText();
+            }
+        });
+        anim.start();
     }
 
     private void applyChipStyle(TextView chip, boolean selected) {
@@ -435,12 +536,6 @@ public class BookStoreFragment extends Fragment {
         selectedIndex = index;
         buildChips();
         showBooksForIndex(index);
-        chipGroup.post(() -> {
-            if (index < chipGroup.getChildCount()) {
-                View chip = chipGroup.getChildAt(index);
-                if (chip != null) scrollChips.smoothScrollTo(chip.getLeft(), 0);
-            }
-        });
     }
 
     private void showBooksForIndex(int index) {
@@ -454,7 +549,8 @@ public class BookStoreFragment extends Fragment {
         progressLoading.setVisibility(View.VISIBLE);
         layoutError.setVisibility(View.GONE);
         swipeRefresh.setVisibility(View.GONE);
-        scrollChips.setVisibility(View.GONE);
+        chipGroup.setVisibility(View.GONE);
+        expandCategories.setVisibility(View.GONE);
         if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);
         if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.GONE);
     }
@@ -464,7 +560,8 @@ public class BookStoreFragment extends Fragment {
         progressLoading.setVisibility(View.GONE);
         layoutError.setVisibility(View.VISIBLE);
         swipeRefresh.setVisibility(View.GONE);
-        scrollChips.setVisibility(View.GONE);
+        chipGroup.setVisibility(View.GONE);
+        expandCategories.setVisibility(View.GONE);
         if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);
         if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.GONE);
     }

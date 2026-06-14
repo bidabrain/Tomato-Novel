@@ -28,25 +28,26 @@
         android:textColorHint="@color/text_hint"
         android:textSize="14sp" />
 
-    <!-- 分类 Chip 横向滚动行 -->
-    <HorizontalScrollView
-        android:id="@+id/scroll_chips"
+    <!-- 分类 Chip 行（固定5列等宽） -->
+    <LinearLayout
+        android:id="@+id/chip_group"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:layout_marginTop="10dp"
-        android:scrollbars="none"
-        android:visibility="gone">
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="4dp"
+        android:visibility="gone" />
 
-        <LinearLayout
-            android:id="@+id/chip_group"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="4dp" />
-
-    </HorizontalScrollView>
+    <!-- 展开的更多分类面板 -->
+    <LinearLayout
+        android:id="@+id/expand_categories"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:clipToPadding="false" />
 
     <!-- Banner 轮播区 -->
     <FrameLayout
