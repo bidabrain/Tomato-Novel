@@ -240,7 +240,7 @@ public class BookUtil {
                 String bufStr = new String(buf);
                 String[] paragraphs = bufStr.split("\r?\n|\r");
                 for (String str : paragraphs) {
-                    if (str.length() <= 30 && (str.matches(".*第\\s*.{1,8}章.*") || str.matches(".*第\\s*.{1,8}节.*") || str.matches(".*第\\s*.{1,8}卷.*"))) {
+                    if (str.length() <= 30 && (str.matches(".*第\\s*.{1,8}章.*") || str.matches(".*第\\s*.{1,8}节.*"))) {
                         BookCatalogue bookCatalogue = new BookCatalogue();
                         bookCatalogue.setBookCatalogueStartPos(size);
                         bookCatalogue.setBookCatalogue(str);

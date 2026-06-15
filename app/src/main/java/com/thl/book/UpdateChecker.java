@@ -11,8 +11,14 @@ import com.thl.reader.db.TomatoBook;
 import com.thl.book.network.FanqieApi;
 import com.thl.book.network.FanqieClient;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -84,18 +90,42 @@ public class UpdateChecker {
                 }
                 broadcast(context, false, 0, total, "");
 
-                // ── Phase 1：并发检查章节数 ────────────────────────────────
+                // ── Phase 1：检查有无新章节 ───────────────────────────────
                 FanqieApi api = new FanqieApi(
                         FanqieClient.getProxyUrl(context),
                         FanqieClient.getDownloaderUrl(context),
                         FanqieClient.getDownloaderPassword(context));
 
                 AtomicInteger checked = new AtomicInteger(0);
-                // 收集有新章节的书（保持原顺序）
                 List<BookList> needsDownload = new CopyOnWriteArrayList<>();
 
-                List<Future<?>> futures = new ArrayList<>();
+                // Phase 1a：优先用服务器 /api/updates（与下载逻辑用同一套计数）
+                Map<String, Boolean> serverUpdateMap = fetchServerUpdateMap(api);
+
+                // Phase 1b：对服务器有记录的书直接采用服务器结论
+                List<BookList> needFallback = new ArrayList<>();
                 for (BookList book : tomatoBooks) {
+                    String bookId = book.getTomatoBookId();
+                    if (serverUpdateMap.containsKey(bookId)) {
+                        int cur = checked.incrementAndGet();
+                        sCurrentBook = cur;
+                        sCurrentBookName = book.getBookname();
+                        broadcast(context, false, cur, total, book.getBookname());
+                        if (Boolean.TRUE.equals(serverUpdateMap.get(bookId))) {
+                            needsDownload.add(book);
+                        } else {
+                            String orig = "更新中…".equals(book.getMsg()) ? "" : book.getMsg();
+                            DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), orig);
+                        }
+                        broadcast(context, false, cur, total, book.getBookname());
+                    } else {
+                        needFallback.add(book);
+                    }
+                }
+
+                // Phase 1c：服务器无记录的书（缓存被清或首次），降级直接查 fanqie 接口
+                List<Future<?>> futures = new ArrayList<>();
+                for (BookList book : needFallback) {
                     futures.add(checkPool.submit(() -> {
                         String bookId = book.getTomatoBookId();
                         TomatoBook meta = DB.tomatoBook().findByBookId(bookId);
@@ -110,7 +140,6 @@ public class UpdateChecker {
                             } else if (latestTotal == 0) {
                                 // 章节列表获取失败，跳过
                             } else {
-                                // 无新章节，恢复 msg
                                 String orig = "更新中…".equals(book.getMsg()) ? "" : book.getMsg();
                                 DB.bookList().updateCharsetAndMsg(book.getId(), book.getCharset(), orig);
                             }
@@ -122,7 +151,6 @@ public class UpdateChecker {
                         broadcast(context, false, cur, total, book.getBookname());
                     }));
                 }
-                // 等待所有检查完成
                 for (Future<?> f : futures) {
                     try { f.get(); } catch (Exception ignored) {}
                 }
@@ -161,6 +189,38 @@ public class UpdateChecker {
                 sIsRunning = false;
             }
         });
+    }
+
+    /**
+     * 调用服务器 /api/updates，等待扫描完成，返回 book_id → has_update 映射。
+     * 服务器不可达或无结果时返回空 map，调用方降级为直接查 fanqie 接口。
+     */
+    private static Map<String, Boolean> fetchServerUpdateMap(FanqieApi api) {
+        Map<String, Boolean> result = new HashMap<>();
+        JsonObject scan = api.getUpdateScan(true);
+        if (scan == null) return result;
+
+        // 轮询直到扫描完成，最多等 60 秒
+        for (int tick = 0; tick < 30; tick++) {
+            if (!scan.has("running") || !scan.get("running").getAsBoolean()) break;
+            try { Thread.sleep(2000); } catch (InterruptedException e) { break; }
+            scan = api.getUpdateScan(false);
+            if (scan == null) return result;
+        }
+
+        for (String key : new String[]{"updates", "no_updates"}) {
+            if (!scan.has(key) || !scan.get(key).isJsonArray()) continue;
+            JsonArray arr = scan.getAsJsonArray(key);
+            for (JsonElement el : arr) {
+                if (!el.isJsonObject()) continue;
+                JsonObject row = el.getAsJsonObject();
+                if (!row.has("book_id")) continue;
+                String bookId = row.get("book_id").getAsString();
+                boolean hasUpdate = row.has("has_update") && row.get("has_update").getAsBoolean();
+                result.put(bookId, hasUpdate);
+            }
+        }
+        return result;
     }
 
     private static void broadcast(Context ctx, boolean finished, int cur, int total, String name) {

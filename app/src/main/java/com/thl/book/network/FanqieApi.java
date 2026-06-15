@@ -389,6 +389,26 @@ public class FanqieApi {
         }
     }
 
+    // ── 更新扫描 ──────────────────────────────────────────────────────────────
+
+    /**
+     * GET /api/updates?start={start} → 服务器更新扫描快照，失败返回 null。
+     * start=true 触发新扫描，start=false 仅读取当前进度。
+     */
+    public JsonObject getUpdateScan(boolean start) {
+        HttpUrl url = HttpUrl.parse(downloaderUrl + "/api/updates")
+                .newBuilder()
+                .addQueryParameter("start", start ? "true" : "false")
+                .build();
+        try (Response resp = client.newCall(authReq(url.toString()).build()).execute()) {
+            if (!resp.isSuccessful() || resp.body() == null) return null;
+            return gson.fromJson(resp.body().string(), JsonObject.class);
+        } catch (Exception e) {
+            Log.e(TAG, "getUpdateScan exception", e);
+            return null;
+        }
+    }
+
     // ── 私有工具 ──────────────────────────────────────────────────────────────
 
     private Request.Builder authReq(String url) {
