@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="56dp"
-        android:background="#FFFFFF"
+        android:background="@color/bg_card"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingLeft="8dp"
@@ -40,7 +40,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#F0E8E4" />
+        android:background="@color/divider_color" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -66,7 +66,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="自定义书城数据源"
-                    android:textColor="#111111"
+                    android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
@@ -83,7 +83,7 @@
                 android:layout_marginTop="2dp"
                 android:layout_marginBottom="12dp"
                 android:text="开启后使用下方地址替换内置书城地址"
-                android:textColor="#888888"
+                android:textColor="@color/text_hint"
                 android:textSize="12sp" />
 
             <LinearLayout
@@ -97,7 +97,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="数据源地址（latest_ranks.json 完整 URL）"
-                    android:textColor="#555555"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <EditText
@@ -105,13 +105,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:background="#FFFFFF"
+                    android:background="@color/bg_card"
                     android:hint="https://username.github.io/FanqieRankTracker/data/latest_ranks.json"
                     android:inputType="textUri"
                     android:padding="8dp"
                     android:singleLine="true"
-                    android:textColor="#111111"
-                    android:textColorHint="#AAAAAA" />
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" />
 
             </LinearLayout>
 
@@ -121,7 +121,7 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="16dp"
-                android:background="#E0E0E0" />
+                android:background="@color/divider_gray" />
 
             <!-- ── Section 3: WebDAV 同步 ──────────────────────────────────────── -->
 
@@ -136,7 +136,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="WebDAV 同步服务器"
-                    android:textColor="#111111"
+                    android:textColor="@color/text_primary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
@@ -144,7 +144,7 @@
                     android:id="@+id/tv_last_sync"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="#AAAAAA"
+                    android:textColor="@color/text_hint"
                     android:textSize="11sp" />
 
             </LinearLayout>
@@ -155,7 +155,7 @@
                 android:layout_marginTop="2dp"
                 android:layout_marginBottom="12dp"
                 android:text="同步开关在主界面右上角，服务器为空时开关锁定"
-                android:textColor="#888888"
+                android:textColor="@color/text_hint"
                 android:textSize="12sp" />
 
             <LinearLayout
@@ -169,7 +169,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="服务器地址"
-                    android:textColor="#555555"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <EditText
@@ -177,20 +177,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:background="#FFFFFF"
+                    android:background="@color/bg_card"
                     android:hint="https://your-webdav-server.example.com/dav/"
                     android:inputType="textUri"
                     android:padding="8dp"
                     android:singleLine="true"
-                    android:textColor="#111111"
-                    android:textColorHint="#AAAAAA" />
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="用户名"
-                    android:textColor="#555555"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <EditText
@@ -198,20 +198,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:background="#FFFFFF"
+                    android:background="@color/bg_card"
                     android:hint="用户名"
                     android:inputType="text"
                     android:padding="8dp"
                     android:singleLine="true"
-                    android:textColor="#111111"
-                    android:textColorHint="#AAAAAA" />
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
                     android:text="密码"
-                    android:textColor="#555555"
+                    android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
                 <EditText
@@ -219,13 +219,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="4dp"
-                    android:background="#FFFFFF"
+                    android:background="@color/bg_card"
                     android:hint="密码"
                     android:inputType="textPassword"
                     android:padding="8dp"
                     android:singleLine="true"
-                    android:textColor="#111111"
-                    android:textColorHint="#AAAAAA" />
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" />
 
             </LinearLayout>
 
@@ -235,7 +235,7 @@
                 android:layout_height="1dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="16dp"
-                android:background="#E0E0E0" />
+                android:background="@color/divider_gray" />
 
             <!-- ── Section: 内嵌服务器 ──────────────────────────────────────── -->
 
@@ -243,7 +243,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="内嵌服务器"
-                android:textColor="#111111"
+                android:textColor="@color/text_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -253,7 +253,7 @@
                 android:layout_marginTop="2dp"
                 android:layout_marginBottom="12dp"
                 android:text="清理服务器中间缓存（章节分片）及合并产出的 TXT，不影响书架中的书（tomato/local/）"
-                android:textColor="#888888"
+                android:textColor="@color/text_hint"
                 android:textSize="12sp" />
 
             <Button
@@ -270,7 +270,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:textColor="#AAAAAA"
+                android:textColor="@color/text_hint"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -282,7 +282,7 @@
         android:id="@+id/bottom_action"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="@color/bg_card"
         android:padding="16dp">
 
         <Button

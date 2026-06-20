@@ -13,7 +13,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#F0E8E4" />
+        android:background="@color/divider_color" />
 
     <!-- Tab content area -->
     <FrameLayout
@@ -250,7 +250,7 @@
                 <View
                     android:layout_width="1dp"
                     android:layout_height="match_parent"
-                    android:background="#F0E8E4" />
+                    android:background="@color/divider_color" />
 
                 <!-- 累计阅读天数 -->
                 <LinearLayout
@@ -290,7 +290,7 @@
                 <View
                     android:layout_width="1dp"
                     android:layout_height="match_parent"
-                    android:background="#F0E8E4" />
+                    android:background="@color/divider_color" />
 
                 <!-- 收藏书籍 -->
                 <LinearLayout
@@ -412,7 +412,7 @@
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
+        android:background="@color/bg_nav"
         app:itemIconTint="@color/nav_color_selector"
         app:itemTextColor="@color/nav_color_selector"
         app:labelVisibilityMode="labeled"
