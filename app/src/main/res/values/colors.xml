@@ -20,4 +20,13 @@
     <color name="text_hint">#A89890</color>
     <!-- 本地书标签背景色 -->
     <color name="color_local_badge">#6B5A53</color>
+
+    <!-- 卡片/弹窗背景（明暗模式切换用） -->
+    <color name="bg_card">#FFFFFF</color>
+    <!-- 底部导航背景 -->
+    <color name="bg_nav">#FFFFFF</color>
+    <!-- 分隔线：暖色 -->
+    <color name="divider_color">#F0E8E4</color>
+    <!-- 分隔线：中性灰 -->
+    <color name="divider_gray">#E0E0E0</color>
 </resources>

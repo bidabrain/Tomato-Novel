@@ -518,7 +518,7 @@ public class BookStoreFragment extends Fragment {
             chip.setTypeface(null, Typeface.BOLD);
         } else {
             chip.setBackgroundResource(R.drawable.bg_chip);
-            chip.setTextColor(eink ? 0xFF000000 : 0xFF221C19);
+            chip.setTextColor(eink ? 0xFF000000 : getResources().getColor(R.color.text_primary));
             chip.setTypeface(null, Typeface.NORMAL);
         }
     }

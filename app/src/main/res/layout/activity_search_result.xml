@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="56dp"
-        android:background="#FFFFFF"
+        android:background="@color/bg_card"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingLeft="4dp"
@@ -42,7 +42,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#F0E8E4" />
+        android:background="@color/divider_color" />
 
     <!-- 加载中 -->
     <LinearLayout

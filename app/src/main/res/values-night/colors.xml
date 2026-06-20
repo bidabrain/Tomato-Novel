@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 主色保持不变 -->
+    <color name="colorPrimary">#E5492C</color>
+    <color name="colorPrimaryDark">#C53E25</color>
+    <color name="colorAccent">#E5492C</color>
+    <color name="theme_color">#E5492C</color>
+
+    <!-- 暗色容器背景 -->
+    <color name="color_container">#3D2318</color>
+
+    <!-- 全局页面背景：暖黑 -->
+    <color name="bg_activity">#1A1614</color>
+    <color name="white">#ffffff</color>
+    <color name="bg_pass">#3D2318</color>
+
+    <!-- 文字色 -->
+    <color name="text_primary">#EDE6E3</color>
+    <color name="text_secondary">#C4AFA7</color>
+    <color name="text_hint">#7A6860</color>
+    <color name="color_local_badge">#9A8880</color>
+
+    <!-- 卡片/弹窗背景 -->
+    <color name="bg_card">#2A2220</color>
+    <!-- 底部导航背景 -->
+    <color name="bg_nav">#221A17</color>
+    <!-- 分隔线：暖色 -->
+    <color name="divider_color">#2E2320</color>
+    <!-- 分隔线：中性灰 -->
+    <color name="divider_gray">#383838</color>
+</resources>

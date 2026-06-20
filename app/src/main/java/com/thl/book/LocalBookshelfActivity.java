@@ -52,6 +52,7 @@ import com.thl.reader.filechooser.FileChooserActivity;
 import com.thl.reader.util.FileUtils;
 import com.thl.reader.util.ReadingStatsManager;
 
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
@@ -323,6 +324,9 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         applySwitchColors();
         swEink.setOnCheckedChangeListener((buttonView, isChecked) -> {
             config.setEinkMode(isChecked);
+            AppCompatDelegate.setDefaultNightMode(isChecked
+                    ? AppCompatDelegate.MODE_NIGHT_NO
+                    : AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
             applyEinkMode(isChecked);
             if (bookStoreFragment != null) {
                 bookStoreFragment.onEinkModeChanged();
@@ -401,7 +405,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         // Banner card background
         if (cardContinueBanner != null) {
             cardContinueBanner.setCardBackgroundColor(
-                    eink ? 0xFFEEEEEE : 0xFFFBE6DD);
+                    eink ? 0xFFEEEEEE : getResources().getColor(R.color.color_container));
         }
         // Stats row background
         if (rowStats != null) {
