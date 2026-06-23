@@ -35,8 +35,16 @@ public class DB {
         db.bookMarksDao().insert(m);
     }
 
-    /** Insert or update a TomatoBook. */
+    /**
+     * Insert or update a TomatoBook, keyed by bookId.
+     * 即便调用方 new 了一个 id==0 的对象，只要 bookId 已存在就走 update，
+     * 避免同一本书在 tomato_book 里产生重复行（曾导致章节数统计读到旧记录）。
+     */
     public static void save(TomatoBook t) {
+        if (t.getId() == 0 && t.getBookId() != null) {
+            TomatoBook existing = db.tomatoBookDao().findByBookId(t.getBookId());
+            if (existing != null) t.setId(existing.getId());
+        }
         if (t.getId() == 0) { long id = db.tomatoBookDao().insert(t); t.setId((int) id); }
         else db.tomatoBookDao().update(t);
     }

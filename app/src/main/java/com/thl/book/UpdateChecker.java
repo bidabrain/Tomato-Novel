@@ -99,19 +99,25 @@ public class UpdateChecker {
                 AtomicInteger checked = new AtomicInteger(0);
                 List<BookList> needsDownload = new CopyOnWriteArrayList<>();
 
-                // Phase 1a：优先用服务器 /api/updates（与下载逻辑用同一套计数）
-                Map<String, Boolean> serverUpdateMap = fetchServerUpdateMap(api);
+                // Phase 1a：优先用服务器 /api/updates 拿到每本书的最新章节数
+                Map<String, Integer> serverTotalMap = fetchServerTotalMap(api);
 
-                // Phase 1b：对服务器有记录的书直接采用服务器结论
+                // Phase 1b：拿服务器章节数与「本地已下载章节数」比较来决定是否需要下载。
+                // 不能直接用服务器的 has_update 标志——它表示「服务器库 vs 番茄源」，
+                // 当服务器已自行补全（如清缓存后重下完整副本）时恒为 false，
+                // 而 app 本地副本可能仍落后，会导致永远卡在旧章节数。
                 List<BookList> needFallback = new ArrayList<>();
                 for (BookList book : tomatoBooks) {
                     String bookId = book.getTomatoBookId();
-                    if (serverUpdateMap.containsKey(bookId)) {
+                    Integer serverTotal = serverTotalMap.get(bookId);
+                    if (serverTotal != null) {
                         int cur = checked.incrementAndGet();
                         sCurrentBook = cur;
                         sCurrentBookName = book.getBookname();
                         broadcast(context, false, cur, total, book.getBookname());
-                        if (Boolean.TRUE.equals(serverUpdateMap.get(bookId))) {
+                        TomatoBook meta = DB.tomatoBook().findByBookId(bookId);
+                        int localTotal = meta != null ? meta.getTotalChapters() : 0;
+                        if (serverTotal > localTotal) {
                             needsDownload.add(book);
                         } else {
                             String orig = "更新中…".equals(book.getMsg()) ? "" : book.getMsg();
@@ -192,11 +198,13 @@ public class UpdateChecker {
     }
 
     /**
-     * 调用服务器 /api/updates，等待扫描完成，返回 book_id → has_update 映射。
+     * 调用服务器 /api/updates，等待扫描完成，返回 book_id → 最新章节数 映射。
+     * 章节数取 remote_total 与 local_total 的较大值（番茄源章节数 vs 服务器库章节数），
+     * 调用方据此与本地已下载章节数比较来判断是否需要下载。
      * 服务器不可达或无结果时返回空 map，调用方降级为直接查 fanqie 接口。
      */
-    private static Map<String, Boolean> fetchServerUpdateMap(FanqieApi api) {
-        Map<String, Boolean> result = new HashMap<>();
+    private static Map<String, Integer> fetchServerTotalMap(FanqieApi api) {
+        Map<String, Integer> result = new HashMap<>();
         JsonObject scan = api.getUpdateScan(true);
         if (scan == null) return result;
 
@@ -216,11 +224,15 @@ public class UpdateChecker {
                 JsonObject row = el.getAsJsonObject();
                 if (!row.has("book_id")) continue;
                 String bookId = row.get("book_id").getAsString();
-                boolean hasUpdate = row.has("has_update") && row.get("has_update").getAsBoolean();
-                result.put(bookId, hasUpdate);
+                int total = Math.max(intField(row, "remote_total"), intField(row, "local_total"));
+                if (total > 0) result.put(bookId, total);
             }
         }
         return result;
+    }
+
+    private static int intField(JsonObject row, String name) {
+        return row.has(name) && !row.get(name).isJsonNull() ? row.get(name).getAsInt() : 0;
     }
 
     private static void broadcast(Context ctx, boolean finished, int cur, int total, String name) {
