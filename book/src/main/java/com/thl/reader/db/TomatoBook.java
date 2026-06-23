@@ -1,9 +1,10 @@
 package com.thl.reader.db;
 
 import androidx.room.Entity;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "tomato_book")
+@Entity(tableName = "tomato_book", indices = {@Index(value = "bookId", unique = true)})
 public class TomatoBook {
     @PrimaryKey(autoGenerate = true)
     private int id;
