@@ -40,7 +40,10 @@ android {
         applicationId rootProject.ext.android["applicationId"]
         minSdkVersion rootProject.ext.android["minSdkVersion"]
         targetSdkVersion rootProject.ext.android["targetSdkVersion"]
-        versionCode rootProject.ext.android["versionCode"]
+        // CI(GitHub Actions)下用 基准版本号 + run_number 自动递增，保证始终大于本地版本且单调递增；
+        // 本地编译无 GITHUB_RUN_NUMBER，仍使用 config.gradle 里的原值。
+        def ciRunNumber = System.getenv("GITHUB_RUN_NUMBER")
+        versionCode ciRunNumber ? (rootProject.ext.android["versionCode"] + ciRunNumber.toInteger()) : rootProject.ext.android["versionCode"]
         versionName rootProject.ext.android["versionName"]
         resConfigs "zh"
     }
