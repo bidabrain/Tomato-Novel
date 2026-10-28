@@ -1,0 +1,56 @@
+name: Build Release APK
+
+on:
+  push:
+    branches: [ main ]       # 每次 push 到 main 自动编译
+    tags:     [ 'v*' ]        # 打 v* tag 时额外发布 GitHub Release
+  workflow_dispatch:          # 支持手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50      # getChangelog() 需要读取最近几条 git log
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      # 还原本地固定的 debug keystore（内容来自加密 Secret，不会出现在仓库/日志里）
+      - name: Restore debug keystore
+        run: |
+          mkdir -p "$HOME/.android"
+          echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > "$HOME/.android/debug.keystore"
+
+      # 用 Secret 重建 local.properties（sdk.dir 走 runner 的 ANDROID_HOME，无需写入）
+      - name: Create local.properties
+        run: |
+          {
+            echo "DOWNLOADER_URL=${{ secrets.DOWNLOADER_URL }}"
+            echo "DOWNLOADER_PASSWORD=${{ secrets.DOWNLOADER_PASSWORD }}"
+          } > local.properties
+
+      - name: Build release APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Upload APKs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apks
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      # 仅当推送的是 v* tag 时，把 APK 发布成可下载的 GitHub Release
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
