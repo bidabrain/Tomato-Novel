@@ -28,6 +28,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
+import com.thl.book.base.FixedHeaderAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.viewpager2.widget.ViewPager2;
@@ -72,14 +73,29 @@ public class BookStoreFragment extends Fragment {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    /** rv_books 布局里原有的 paddingBottom */
+    /** rv_books 布局里原有的 paddingTop / paddingBottom */
+    private int rvBooksPadTop;
     private int rvBooksPadBottom;
+    /** 头部（搜索 ~ 精选推荐标题），作为列表第一项随书籍滚动 */
+    private View storeHeader;
 
     /** 内容铺满到磨砂玻璃底部导航后面，列表底部留出导航栏高度 */
     public void setBottomInset(int inset) {
         if (rvBooks == null) return;
         rvBooks.setPadding(rvBooks.getPaddingLeft(), rvBooks.getPaddingTop(),
                 rvBooks.getPaddingRight(), rvBooksPadBottom + inset);
+    }
+
+    /** 内容铺满到磨砂玻璃顶栏后面，列表顶部留出顶栏高度；下拉刷新指示器下移到顶栏下方 */
+    public void setTopInset(int inset) {
+        if (rvBooks == null) return;
+        // 改留白会保持当前第一项的位置不动；原本在顶部时需滚回顶部，否则头部会被压在顶栏下
+        boolean atTop = !rvBooks.canScrollVertically(-1);
+        rvBooks.setPadding(rvBooks.getPaddingLeft(), rvBooksPadTop + inset,
+                rvBooks.getPaddingRight(), rvBooks.getPaddingBottom());
+        if (atTop) rvBooks.scrollToPosition(0);
+        int d = Math.round(getResources().getDisplayMetrics().density);
+        swipeRefresh.setProgressViewOffset(false, inset - 40 * d, inset + 24 * d);
     }
 
     @Nullable
@@ -94,11 +110,15 @@ public class BookStoreFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         rvBooks = view.findViewById(R.id.rv_books);
+        rvBooksPadTop = rvBooks.getPaddingTop();
         rvBooksPadBottom = rvBooks.getPaddingBottom();
-        if (getActivity() instanceof LocalBookshelfActivity) {
-            setBottomInset(((LocalBookshelfActivity) getActivity()).getBottomInset());
-        }
+        storeHeader = view.findViewById(R.id.store_header);
         swipeRefresh = view.findViewById(R.id.swipe_refresh);
+        if (getActivity() instanceof LocalBookshelfActivity) {
+            LocalBookshelfActivity act = (LocalBookshelfActivity) getActivity();
+            setBottomInset(act.getBottomInset());
+            setTopInset(act.getTopInset());
+        }
         progressLoading = view.findViewById(R.id.progress_loading);
         layoutError = view.findViewById(R.id.layout_error);
         chipGroup = view.findViewById(R.id.chip_group);
@@ -154,12 +174,12 @@ public class BookStoreFragment extends Fragment {
             });
         }
 
-        rvBooks.setLayoutManager(new GridLayoutManager(requireContext(), 4));
         rvBooks.setHasFixedSize(false);
         gridAdapter = new BookGridAdapter(book ->
                 BookDetailActivity.start(requireActivity(),
                         book.title, book.author, book.reads, book.intro, book.cover));
-        rvBooks.setAdapter(gridAdapter);
+        // 头部作为列表第一项，随书籍一起滚动（之后不能再用 view.findViewById 找头部里的控件）
+        FixedHeaderAdapter.attach(rvBooks, storeHeader, gridAdapter, 4);
 
         // Left/right swipe to change category
         GestureDetector swipeDetector = new GestureDetector(requireContext(),
@@ -187,9 +207,15 @@ public class BookStoreFragment extends Fragment {
                     }
                 });
         rvBooks.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+            /** 本次手势是否从头部开始（头部有横向滑动的轮播图，不能触发切换分类） */
+            private boolean startedOnHeader;
+
             @Override
             public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-                swipeDetector.onTouchEvent(e);
+                if (e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                    startedOnHeader = rv.findChildViewUnder(e.getX(), e.getY()) == storeHeader;
+                }
+                if (!startedOnHeader) swipeDetector.onTouchEvent(e);
                 return false;
             }
         });
@@ -209,7 +235,7 @@ public class BookStoreFragment extends Fragment {
         });
 
         // Store search bar
-        EditText etStoreSearch = view.findViewById(R.id.et_store_search);
+        EditText etStoreSearch = storeHeader.findViewById(R.id.et_store_search);
         etStoreSearch.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 String query = etStoreSearch.getText().toString().trim();
@@ -555,14 +581,17 @@ public class BookStoreFragment extends Fragment {
     private void showBooksForIndex(int index) {
         if (categories == null || index >= categories.size()) return;
         gridAdapter.setBooks(categories.get(index).displayBooks);
-        rvBooks.scrollToPosition(0);
+        // 第 0 项是头部：头部还在屏幕上时不动；否则对齐到第一本书（位于顶栏下方）
+        GridLayoutManager glm = (GridLayoutManager) rvBooks.getLayoutManager();
+        if (glm != null && glm.findFirstVisibleItemPosition() > 0) {
+            glm.scrollToPositionWithOffset(1, 0);
+        }
     }
 
     private void showLoading() {
         if (getView() == null) return;
         progressLoading.setVisibility(View.VISIBLE);
         layoutError.setVisibility(View.GONE);
-        swipeRefresh.setVisibility(View.GONE);
         chipGroup.setVisibility(View.GONE);
         expandCategories.setVisibility(View.GONE);
         if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);
@@ -573,7 +602,6 @@ public class BookStoreFragment extends Fragment {
         if (getView() == null) return;
         progressLoading.setVisibility(View.GONE);
         layoutError.setVisibility(View.VISIBLE);
-        swipeRefresh.setVisibility(View.GONE);
         chipGroup.setVisibility(View.GONE);
         expandCategories.setVisibility(View.GONE);
         if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);

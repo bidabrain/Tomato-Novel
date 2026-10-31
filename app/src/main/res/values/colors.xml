@@ -27,6 +27,8 @@
     <color name="bg_nav">#FFFFFF</color>
     <!-- 底部导航磨砂玻璃叠加色（约 50% 不透明） -->
     <color name="glass_nav">#80FFFFFF</color>
+    <!-- 顶栏磨砂玻璃叠加色（承载标题文字，比导航略不透明） -->
+    <color name="glass_title">#99FFFFFF</color>
     <!-- 悬浮胶囊导航：描边与选中项高亮 -->
     <color name="glass_nav_stroke">#1F000000</color>
     <color name="glass_nav_indicator">#14000000</color>

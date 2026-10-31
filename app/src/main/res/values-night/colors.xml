@@ -26,6 +26,8 @@
     <color name="bg_nav">#221A17</color>
     <!-- 底部导航磨砂玻璃叠加色 -->
     <color name="glass_nav">#80221A17</color>
+    <!-- 顶栏磨砂玻璃叠加色 -->
+    <color name="glass_title">#992A2220</color>
     <!-- 悬浮胶囊导航：描边与选中项高亮 -->
     <color name="glass_nav_stroke">#2EFFFFFF</color>
     <color name="glass_nav_indicator">#1FFFFFFF</color>

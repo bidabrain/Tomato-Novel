@@ -39,10 +39,8 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import com.lcodecore.tkrefreshlayout.RefreshListenerAdapter;
-import com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout;
-import com.lcodecore.tkrefreshlayout.header.progresslayout.ProgressLayout;
 import com.thl.book.base.BaseActivity;
+import com.thl.book.base.FixedHeaderAdapter;
 import com.thl.book.base.SingleAdapter;
 import com.thl.book.base.SuperViewHolder;
 import com.thl.reader.Config;
@@ -91,7 +89,7 @@ import java.util.concurrent.Executors;
 
 public class LocalBookshelfActivity extends BaseActivity implements View.OnClickListener {
 
-    private TwinklingRefreshLayout refreshLayout;
+    private androidx.swiperefreshlayout.widget.SwipeRefreshLayout refreshLayout;
     private RecyclerView mRecyclerView;
     private EditText etSearch;
 
@@ -106,6 +104,10 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private SwitchCompat swEink;
     /** 底部导航的磨砂玻璃容器 */
     private BlurView bottomNavGlass;
+    /** 顶栏的磨砂玻璃容器 */
+    private BlurView titleGlass;
+    /** 顶栏当前高度，列表需留出同样的顶部空白 */
+    private int topInset;
     private BottomNavigationView bottomNav;
     /** 底部导航当前高度，列表需留出同样的底部空白 */
     private int bottomInset;
@@ -127,15 +129,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private View ibSearch;
     private View rowShelfHeader;
 
-    // 顶部横栏折叠（继续阅读 + 阅读统计）
-    private boolean headerCollapsed = false;
-    private boolean headerAnimating = false;
-    private int accumulatedDy = 0;
-    private android.animation.ValueAnimator headerAnimator;
-    private long headerCooldownUntil = 0;
-    private boolean collapsedThisGesture = false;
-    private static final int COLLAPSE_THRESHOLD_DP = 10;
-    private static final long HEADER_COOLDOWN_MS = 300;
 
     // 排序
     private static final int SORT_RECENT_READ  = 0;
@@ -318,13 +311,26 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
             ibHistory.setOnClickListener(v -> showHistoryPopup());
         }
 
-        refreshLayout = (TwinklingRefreshLayout) findViewById(R.id.refresh);
+        refreshLayout = findViewById(R.id.refresh);
+        refreshLayout.setColorSchemeResources(R.color.colorPrimary);
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerview);
-        ProgressLayout headerView = new ProgressLayout(this);
-        refreshLayout.setHeaderView(headerView);
-        refreshLayout.setEnableLoadmore(false);
-        refreshLayout.setAutoLoadMore(false);
-        refreshLayout.setOverScrollRefreshShow(true);
+
+        // 内容铺满到磨砂玻璃顶栏后面，列表顶部留出顶栏高度；下拉刷新指示器下移到顶栏下方
+        titleGlass = findViewById(R.id.title_glass);
+        findViewById(R.id.title_bar).setBackgroundColor(Color.TRANSPARENT);
+        final int shelfPadTop = mRecyclerView.getPaddingTop();
+        titleGlass.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            int h = b - t;
+            if (h == topInset) return;
+            topInset = h;
+            // 改留白会保持当前第一项的位置不动；原本在顶部时需滚回顶部，否则头部会被压在顶栏下
+            boolean atTop = !mRecyclerView.canScrollVertically(-1);
+            mRecyclerView.setPadding(mRecyclerView.getPaddingLeft(), shelfPadTop + h,
+                    mRecyclerView.getPaddingRight(), mRecyclerView.getPaddingBottom());
+            if (atTop) mRecyclerView.scrollToPosition(0);
+            refreshLayout.setProgressViewOffset(false, h - dp(40), h + dp(24));
+            if (bookStoreFragment != null) bookStoreFragment.setTopInset(h);
+        });
 
         // 内容铺满到底部导航后面（磨砂玻璃需要背后有内容），列表底部留出胶囊顶部以下的全部高度
         final int shelfPadBottom = mRecyclerView.getPaddingBottom();
@@ -463,6 +469,9 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     ? R.drawable.bg_nav_capsule_stroke_eink : R.drawable.bg_nav_capsule_stroke));
             // E-ink 下选中项不加高亮：选中图标本身会变色，足够区分
             bottomNav.setItemBackgroundResource(eink ? android.R.color.transparent : R.drawable.bg_nav_item);
+            // 顶栏磨砂玻璃：E-ink 下为不透明白底
+            GlassHelper.apply(titleGlass, root,
+                    getResources().getColor(R.color.glass_title), 0xFFFFFFFF, !eink);
         }
         // Banner card background
         if (cardContinueBanner != null) {
@@ -477,41 +486,24 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
     @Override
     protected void initData(Bundle savedInstanceState) {
-        refreshLayout.setOnRefreshListener(new RefreshListenerAdapter() {
-            @Override
-            public void onPullingDown(TwinklingRefreshLayout refreshLayout, float fraction) {
-                // 仅当列表确实处于顶部、且是用户真实下拉时才展开。
-                // 关键：同一次手势里若刚发生过折叠，禁止本次手势再触发展开——
-                // 因为折叠会把短列表顶到顶部、把这同一次上滑误判成“下拉”，导致回弹。
-                if (headerCollapsed && !headerAnimating && !collapsedThisGesture
-                        && fraction > 0.15f
-                        && mRecyclerView != null
-                        && !mRecyclerView.canScrollVertically(-1)) {
-                    setHeaderCollapsed(false, true);
-                }
+        refreshLayout.setOnRefreshListener(() -> {
+            showUpdateBanner(true, null, 0, 0);
+            if (!UpdateChecker.isRunning()) {
+                UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
             }
-
-            @Override
-            public void onRefresh(final TwinklingRefreshLayout refreshLayout) {
-                showUpdateBanner(true, null, 0, 0);
-                if (!UpdateChecker.isRunning()) {
-                    UpdateChecker.checkOnLaunch(LocalBookshelfActivity.this);
-                }
-                executor.execute(() -> {
-                    List<BookList> books = getBooks();
-                    runOnUiThread(() -> {
-                        if (isDestroyed() || isFinishing()) return;
-                        bookLists.clear();
-                        bookLists.addAll(books);
-                        adapter.notifyDataSetChanged();
-                        updateContinueCard();
-                        refreshLayout.finishRefreshing();
-                    });
+            executor.execute(() -> {
+                List<BookList> books = getBooks();
+                runOnUiThread(() -> {
+                    if (isDestroyed() || isFinishing()) return;
+                    bookLists.clear();
+                    bookLists.addAll(books);
+                    adapter.notifyDataSetChanged();
+                    updateContinueCard();
+                    refreshLayout.setRefreshing(false);
                 });
-            }
+            });
         });
 
-        mRecyclerView.setLayoutManager(new GridLayoutManager(this, 4));
         adapter = new SingleAdapter<BookList>(LocalBookshelfActivity.this, R.layout.item_book) {
             @Override
             protected void bindData(SuperViewHolder holder, BookList book) {
@@ -613,128 +605,12 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         bookLists = new ArrayList<>();
         adapter.setData(bookLists);
-        mRecyclerView.setAdapter(adapter);
+        // 书架头部（问候语 ~ “我的书架”）作为列表第一项，随书籍一起滚动
+        FixedHeaderAdapter.attach(mRecyclerView, findViewById(R.id.shelf_header), adapter, 4);
 
-        setupHeaderCollapse();
 
         UpdateChecker.checkOnLaunch(this);
         showUpdateBanner(true, null, 0, 0);
-    }
-
-    // ──────────── 顶部横栏折叠（上滑收起，下拉展开） ────────────
-
-    @Override
-    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
-        // 每次新手势按下时复位“本次手势已折叠”标记，
-        // 这样新的一次下拉手势才允许展开，而引起折叠的那次上滑手势不会回弹展开。
-        if (ev.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) {
-            collapsedThisGesture = false;
-        }
-        return super.dispatchTouchEvent(ev);
-    }
-
-    private int dp2px(int dp) {
-        return Math.round(dp * getResources().getDisplayMetrics().density);
-    }
-
-    /** 记录可折叠视图的展开高度/外边距：[measuredHeight, topMargin, originalLpHeight] */
-    private final java.util.WeakHashMap<View, int[]> headerMetrics = new java.util.WeakHashMap<>();
-
-    private void setupHeaderCollapse() {
-        if (mRecyclerView == null) return;
-        final int threshold = dp2px(COLLAPSE_THRESHOLD_DP);
-        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView rv, int dx, int dy) {
-                if (dy == 0 || headerAnimating) return;
-                // 折叠/展开动画刚结束的冷却期内，忽略 overscroll 回弹等抖动滚动
-                if (android.os.SystemClock.uptimeMillis() < headerCooldownUntil) {
-                    accumulatedDy = 0;
-                    return;
-                }
-                // 方向反转时重置累计量
-                if ((dy > 0) != (accumulatedDy >= 0)) accumulatedDy = 0;
-                accumulatedDy += dy;
-                if (accumulatedDy > threshold && !headerCollapsed) {
-                    collapsedThisGesture = true;
-                    setHeaderCollapsed(true, true);
-                } else if (accumulatedDy < -threshold && headerCollapsed) {
-                    setHeaderCollapsed(false, true);
-                }
-            }
-        });
-    }
-
-    /** 当前需要参与折叠、且内容上可见的视图 */
-    private java.util.List<View> collapsibleViews() {
-        java.util.List<View> views = new java.util.ArrayList<>();
-        if (cardContinueBanner != null && cardContinueBanner.getVisibility() == View.VISIBLE) {
-            views.add(cardContinueBanner);
-        }
-        if (rowStats != null && rowStats.getVisibility() == View.VISIBLE) {
-            views.add(rowStats);
-        }
-        return views;
-    }
-
-    private void captureMetrics(View v) {
-        if (headerMetrics.containsKey(v)) return;
-        android.view.ViewGroup.MarginLayoutParams lp =
-                (android.view.ViewGroup.MarginLayoutParams) v.getLayoutParams();
-        int measured = v.getHeight() > 0 ? v.getHeight() : lp.height;
-        headerMetrics.put(v, new int[]{measured, lp.topMargin, lp.height});
-    }
-
-    private void applyFraction(View v, float f) {
-        int[] m = headerMetrics.get(v);
-        if (m == null) return;
-        android.view.ViewGroup.MarginLayoutParams lp =
-                (android.view.ViewGroup.MarginLayoutParams) v.getLayoutParams();
-        lp.height = f >= 1f ? m[2] : Math.round(m[0] * f);
-        lp.topMargin = Math.round(m[1] * f);
-        v.setLayoutParams(lp);
-        v.setAlpha(f);
-    }
-
-    private void setHeaderCollapsed(boolean collapse, boolean animate) {
-        headerCollapsed = collapse;
-        accumulatedDy = 0;
-
-        final java.util.List<View> views = collapsibleViews();
-        if (views.isEmpty()) return;
-        for (View v : views) captureMetrics(v);
-
-        if (headerAnimator != null) {
-            headerAnimator.cancel();
-            headerAnimator = null;
-        }
-
-        final float target = collapse ? 0f : 1f;
-        if (!animate) {
-            for (View v : views) applyFraction(v, target);
-            return;
-        }
-
-        final float start = collapse ? 1f : 0f;
-        headerAnimator = android.animation.ValueAnimator.ofFloat(start, target);
-        headerAnimator.setDuration(220);
-        headerAnimator.addUpdateListener(a -> {
-            float f = (float) a.getAnimatedValue();
-            for (View v : views) applyFraction(v, f);
-        });
-        headerAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationStart(android.animation.Animator animation) {
-                headerAnimating = true;
-            }
-            @Override
-            public void onAnimationEnd(android.animation.Animator animation) {
-                headerAnimating = false;
-                headerCooldownUntil = android.os.SystemClock.uptimeMillis() + HEADER_COOLDOWN_MS;
-                for (View v : views) applyFraction(v, target);
-            }
-        });
-        headerAnimator.start();
     }
 
     /**
@@ -973,6 +849,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         return bottomInset;
     }
 
+    /** 书城 Fragment 创建时读取当前顶栏高度 */
+    int getTopInset() {
+        return topInset;
+    }
+
     private void updateGreeting() {
         if (tvGreeting == null) return;
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
@@ -1042,11 +923,6 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
         if (rowShelfHeader != null) rowShelfHeader.setVisibility(hasBooks ? View.VISIBLE : View.GONE);
         refreshSyncLabel();
-
-        // 折叠状态下数据刷新会让横栏恢复完整高度，需重新收起
-        if (headerCollapsed && mRecyclerView != null) {
-            mRecyclerView.post(() -> setHeaderCollapsed(true, false));
-        }
     }
 
     // ──────────── 搜索历史 ────────────

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 根布局层叠：内容（BlurTarget）铺满到屏幕底部，底部导航作为磨砂玻璃浮在其上 -->
+<!-- 根布局层叠：内容（BlurTarget）铺满整屏，顶栏和底部导航作为磨砂玻璃浮在其上，
+     内容从两者下面滚过（列表的上/下留白由代码按两者高度设置） -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -11,24 +12,10 @@
         android:layout_height="match_parent"
         android:background="@color/bg_activity">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
-
-    <include layout="@layout/layout_title" />
-
-    <!-- 细分隔线 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/divider_color" />
-
     <!-- Tab content area -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_height="match_parent">
 
         <!-- 书架 Tab -->
         <LinearLayout
@@ -37,6 +24,13 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:visibility="visible">
+
+            <!-- 书架头部（问候语 ~ “我的书架”标题行）：运行时移入列表作为第一项，随书籍一起滚动 -->
+            <LinearLayout
+                android:id="@+id/shelf_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
             <!-- 问候语 -->
             <TextView
@@ -91,20 +85,6 @@
                     android:tint="@color/text_hint" />
 
             </LinearLayout>
-
-            <!-- 联网检查新章节状态横条 -->
-            <TextView
-                android:id="@+id/tv_update_status"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#FFF3E0"
-                android:gravity="center"
-                android:paddingTop="7dp"
-                android:paddingBottom="7dp"
-                android:text="正在检查新章节…"
-                android:textColor="#BF360C"
-                android:textSize="13sp"
-                android:visibility="gone" />
 
             <!-- 继续阅读 Banner 卡片（封面全屏填充 + 渐变叠加） -->
             <androidx.cardview.widget.CardView
@@ -389,7 +369,11 @@
 
             </LinearLayout>
 
-            <com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout
+            </LinearLayout>
+            <!-- /shelf_header -->
+
+            <!-- 下拉刷新用 SwipeRefreshLayout：圆形指示器可以下移到磨砂玻璃顶栏下方 -->
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
                 android:id="@+id/refresh"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
@@ -403,7 +387,7 @@
                     android:paddingTop="4dp"
                     android:clipToPadding="false" />
 
-            </com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout>
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         </LinearLayout>
 
@@ -416,19 +400,55 @@
 
     </FrameLayout>
 
-    </LinearLayout>
-
     </eightbitlab.com.blurview.BlurTarget>
+
+    <!-- 顶栏：磨砂玻璃浮层（延伸到状态栏后面），下方附带检查新章节状态横条 -->
+    <eightbitlab.com.blurview.BlurView
+        android:id="@+id/title_glass"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@color/bg_card">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <include layout="@layout/layout_title" />
+
+            <!-- 联网检查新章节状态横条 -->
+            <TextView
+                android:id="@+id/tv_update_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFF3E0"
+                android:gravity="center"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:text="正在检查新章节…"
+                android:textColor="#BF360C"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <!-- 底部细分隔线 -->
+            <View
+                android:id="@+id/title_glass_divider"
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:background="@color/glass_nav_stroke" />
+
+        </LinearLayout>
+
+    </eightbitlab.com.blurview.BlurView>
 
     <!-- 底部导航：悬浮胶囊。背景/模糊由 GlassHelper 按 E-ink 设置切换；
          圆角裁剪在代码里设置（outline），底部外边距会再加上系统导航栏高度 -->
     <eightbitlab.com.blurview.BlurView
         android:id="@+id/bottom_nav_glass"
-        android:layout_width="match_parent"
+        android:layout_width="220dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="20dp"
+        android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="12dp"
         android:background="@color/bg_nav"
         android:foreground="@drawable/bg_nav_capsule_stroke">
