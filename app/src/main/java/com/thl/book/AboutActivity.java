@@ -9,6 +9,8 @@ import com.thl.book.base.BaseActivity;
 
 public class AboutActivity extends BaseActivity {
 
+    private AppUpdater appUpdater;
+
     @Override
     protected int initLayout() {
         return R.layout.activity_about;
@@ -22,6 +24,9 @@ public class AboutActivity extends BaseActivity {
         findViewById(R.id.ib_back).setOnClickListener(v -> finish());
 
         findViewById(R.id.tv_feedback).setVisibility(View.GONE);
+
+        appUpdater = new AppUpdater(this);
+        findViewById(R.id.tv_check_update).setOnClickListener(v -> appUpdater.check());
 
         String version = "unknown";
         try {
@@ -44,4 +49,10 @@ public class AboutActivity extends BaseActivity {
 
     @Override
     protected void initData(Bundle savedInstanceState) {}
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (appUpdater != null) appUpdater.onResume();
+    }
 }

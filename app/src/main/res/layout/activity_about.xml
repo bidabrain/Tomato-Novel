@@ -37,6 +37,20 @@
                 android:textSize="15sp" />
 
             <TextView
+                android:id="@+id/tv_check_update"
+                android:layout_width="match_parent"
+                android:layout_height="35dp"
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                android:layout_marginTop="15dp"
+                android:background="@drawable/bg_tv_sel"
+                android:gravity="center"
+                android:padding="5dp"
+                android:text="检查更新"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp" />
+
+            <TextView
                 android:id="@+id/tv_feedback"
                 android:layout_width="match_parent"
                 android:layout_height="35dp"
