@@ -461,7 +461,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     0xFFFFFFFF, !eink);
             bottomNavGlass.setForeground(getResources().getDrawable(eink
                     ? R.drawable.bg_nav_capsule_stroke_eink : R.drawable.bg_nav_capsule_stroke));
-            bottomNav.setItemBackgroundResource(eink ? R.drawable.bg_nav_item_eink : R.drawable.bg_nav_item);
+            // E-ink 下选中项不加高亮：选中图标本身会变色，足够区分
+            bottomNav.setItemBackgroundResource(eink ? android.R.color.transparent : R.drawable.bg_nav_item);
         }
         // Banner card background
         if (cardContinueBanner != null) {
