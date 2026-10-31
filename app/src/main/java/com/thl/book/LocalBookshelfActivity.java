@@ -545,7 +545,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 String coverUrl = book.getCoverUrl();
                 if (coverUrl != null && !coverUrl.isEmpty()) {
                     Glide.with(LocalBookshelfActivity.this)
-                            .load(coverUrl)
+                            .load(CoverUrls.glideModel(coverUrl))
                             .placeholder(R.mipmap.cover_default_new)
                             .error(R.mipmap.cover_default_new)
                             .into(ivCover);
@@ -885,7 +885,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
                 String coverUrl = lastRead.getCoverUrl();
                 if (coverUrl != null && !coverUrl.isEmpty()) {
-                    Glide.with(this).load(coverUrl)
+                    Glide.with(this).load(CoverUrls.glideModel(coverUrl))
                             .placeholder(R.drawable.bg_banner_no_cover)
                             .error(R.drawable.bg_banner_no_cover)
                             .into(ivBannerCover);
@@ -1027,9 +1027,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         coverRefreshDone = true;
         List<BookList> needRefresh = new java.util.ArrayList<>();
         for (BookList b : books) {
+            // 封面链接为空，或签名链接已过期，都需要重新获取
             if (b.getIsTomato() == 1
                     && b.getTomatoBookId() != null
-                    && (b.getCoverUrl() == null || b.getCoverUrl().isEmpty())) {
+                    && (b.getCoverUrl() == null || b.getCoverUrl().isEmpty()
+                        || CoverUrls.isExpired(b.getCoverUrl()))) {
                 needRefresh.add(b);
             }
         }
