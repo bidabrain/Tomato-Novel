@@ -542,16 +542,8 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 TextView tvUpdateBadge = holder.getView(R.id.tv_update_badge);
                 TextView tvDownloading = holder.getView(R.id.tv_downloading);
 
-                String coverUrl = book.getCoverUrl();
-                if (coverUrl != null && !coverUrl.isEmpty()) {
-                    Glide.with(LocalBookshelfActivity.this)
-                            .load(CoverUrls.glideModel(coverUrl))
-                            .placeholder(R.mipmap.cover_default_new)
-                            .error(R.mipmap.cover_default_new)
-                            .into(ivCover);
-                } else {
-                    ivCover.setImageResource(R.mipmap.cover_default_new);
-                }
+                // 链接 → 上次成功加载的本地封面 → 默认封面
+                CoverCache.load(LocalBookshelfActivity.this, book, ivCover, R.mipmap.cover_default_new);
 
                 tvName.setText(book.getBookname());
 
@@ -883,16 +875,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 String progress = lastRead.getChapterProgress();
                 tvBannerProgress.setText(progress != null ? progress : "");
 
-                String coverUrl = lastRead.getCoverUrl();
-                if (coverUrl != null && !coverUrl.isEmpty()) {
-                    Glide.with(this).load(CoverUrls.glideModel(coverUrl))
-                            .placeholder(R.drawable.bg_banner_no_cover)
-                            .error(R.drawable.bg_banner_no_cover)
-                            .into(ivBannerCover);
-                } else {
-                    ivBannerCover.setImageDrawable(
-                            getResources().getDrawable(R.drawable.bg_banner_no_cover));
-                }
+                CoverCache.load(this, lastRead, ivBannerCover, R.drawable.bg_banner_no_cover);
 
                 // Progress bar fill
                 if (vBannerProgressFill != null) {
