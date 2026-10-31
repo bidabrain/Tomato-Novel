@@ -545,7 +545,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                 String coverUrl = book.getCoverUrl();
                 if (coverUrl != null && !coverUrl.isEmpty()) {
                     Glide.with(LocalBookshelfActivity.this)
-                            .load(CoverUrls.glideModel(coverUrl))
+                            .load(CoverUrls.stable(coverUrl))
                             .placeholder(R.mipmap.cover_default_new)
                             .error(R.mipmap.cover_default_new)
                             .into(ivCover);
@@ -885,7 +885,7 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
 
                 String coverUrl = lastRead.getCoverUrl();
                 if (coverUrl != null && !coverUrl.isEmpty()) {
-                    Glide.with(this).load(CoverUrls.glideModel(coverUrl))
+                    Glide.with(this).load(CoverUrls.stable(coverUrl))
                             .placeholder(R.drawable.bg_banner_no_cover)
                             .error(R.drawable.bg_banner_no_cover)
                             .into(ivBannerCover);
@@ -1027,11 +1027,12 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         coverRefreshDone = true;
         List<BookList> needRefresh = new java.util.ArrayList<>();
         for (BookList b : books) {
-            // 封面链接为空，或签名链接已过期，都需要重新获取
+            // 封面链接为空，或已过期且无法换成长期地址（非 novel-pic 格式），才需要联网重新获取
             if (b.getIsTomato() == 1
                     && b.getTomatoBookId() != null
                     && (b.getCoverUrl() == null || b.getCoverUrl().isEmpty()
-                        || CoverUrls.isExpired(b.getCoverUrl()))) {
+                        || (CoverUrls.isExpired(b.getCoverUrl())
+                            && CoverUrls.stable(b.getCoverUrl()).equals(b.getCoverUrl())))) {
                 needRefresh.add(b);
             }
         }
