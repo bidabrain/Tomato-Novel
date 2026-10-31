@@ -6,6 +6,10 @@ on:
     tags:     [ 'v*' ]        # 打 v* tag 时额外发布 GitHub Release
   workflow_dispatch:          # 支持手动触发
 
+# 发布 GitHub Release 需要写权限（GITHUB_TOKEN 默认只读）
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
