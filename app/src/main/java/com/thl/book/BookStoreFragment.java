@@ -72,6 +72,16 @@ public class BookStoreFragment extends Fragment {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
+    /** rv_books 布局里原有的 paddingBottom */
+    private int rvBooksPadBottom;
+
+    /** 内容铺满到磨砂玻璃底部导航后面，列表底部留出导航栏高度 */
+    public void setBottomInset(int inset) {
+        if (rvBooks == null) return;
+        rvBooks.setPadding(rvBooks.getPaddingLeft(), rvBooks.getPaddingTop(),
+                rvBooks.getPaddingRight(), rvBooksPadBottom + inset);
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -84,6 +94,10 @@ public class BookStoreFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         rvBooks = view.findViewById(R.id.rv_books);
+        rvBooksPadBottom = rvBooks.getPaddingBottom();
+        if (getActivity() instanceof LocalBookshelfActivity) {
+            setBottomInset(((LocalBookshelfActivity) getActivity()).getBottomInset());
+        }
         swipeRefresh = view.findViewById(R.id.swipe_refresh);
         progressLoading = view.findViewById(R.id.progress_loading);
         layoutError = view.findViewById(R.id.layout_error);

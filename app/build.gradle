@@ -8,8 +8,9 @@ def getChangelog(int count = 3) {
                     '--date=short',
                     "-${count}"]
                 .execute(null, rootProject.rootDir)
+        // 显式按 UTF-8 读取，否则 Windows 本地编译会按 GBK 解码导致中文乱码
+        def text = proc.inputStream.getText('UTF-8').trim()
         proc.waitFor()
-        def text = proc.text.trim()
         // 转义为合法 Java 字符串字面量
         text = text.replace('\\', '\\\\')
                    .replace('"',  '\\"')

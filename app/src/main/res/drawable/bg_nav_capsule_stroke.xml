@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 悬浮胶囊导航的描边（作为 foreground 叠在磨砂玻璃上，勾出轮廓） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="100dp" />
+    <stroke
+        android:width="0.8dp"
+        android:color="@color/glass_nav_stroke" />
+</shape>

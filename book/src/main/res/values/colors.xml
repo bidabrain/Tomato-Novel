@@ -11,6 +11,11 @@
     
     <color name="read_dialog_bg2">#3B3A38</color>
     <color name="read_dialog_bg">#cf3B3A38</color>
+    <!-- 对话框文字（主题全局 textColorPrimary 为白色，对话框需单独覆盖） -->
+    <color name="dialog_text_primary">#221C19</color>
+    <color name="dialog_text_secondary">#6B5A53</color>
+    <!-- 阅读菜单磨砂玻璃叠加色（比 read_dialog_bg 更透，交给模糊补足可读性） -->
+    <color name="glass_read_menu">#8C3B3A38</color>
     <color name="read_dialog_button_select">#E5492C</color>
 
     <color name="read_bg_default">#CEC29C</color>

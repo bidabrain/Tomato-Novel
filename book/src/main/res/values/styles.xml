@@ -9,6 +9,17 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="actionMenuTextColor">#ffffff</item>
+        <item name="alertDialogTheme">@style/AlertDialogTheme</item>
+        <item name="android:alertDialogTheme">@style/AlertDialogTheme</item>
+    </style>
+
+    <!-- 对话框单独覆盖文字色，避免继承主题全局的白色 textColorPrimary（白底上看不清）；
+         颜色随日/夜间切换。AppCompat 与系统 android.app.AlertDialog 共用（见 alertDialogTheme 两个属性）。 -->
+    <style name="AlertDialogTheme" parent="Theme.AppCompat.DayNight.Dialog.Alert">
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textColorPrimary">@color/dialog_text_primary</item>
+        <item name="android:textColorSecondary">@color/dialog_text_secondary</item>
+        <item name="android:textColorAlertDialogListItem">@color/dialog_text_primary</item>
     </style>
 
     <style name="Toolbar.TitleText" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">

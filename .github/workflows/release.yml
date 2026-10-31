@@ -2,8 +2,7 @@ name: Build Release APK
 
 on:
   push:
-    branches: [ main ]       # 每次 push 到 main 自动编译
-    tags:     [ 'v*' ]        # 打 v* tag 时额外发布 GitHub Release
+    tags:     [ 'v*' ]        # 只在打 v* tag 时编译并发布 GitHub Release（push main 不再编译，避免重复）
   workflow_dispatch:          # 支持手动触发
 
 # 发布 GitHub Release 需要写权限（GITHUB_TOKEN 默认只读）

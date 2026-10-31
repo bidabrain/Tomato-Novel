@@ -25,6 +25,11 @@
     <color name="bg_card">#FFFFFF</color>
     <!-- 底部导航背景 -->
     <color name="bg_nav">#FFFFFF</color>
+    <!-- 底部导航磨砂玻璃叠加色（约 50% 不透明） -->
+    <color name="glass_nav">#80FFFFFF</color>
+    <!-- 悬浮胶囊导航：描边与选中项高亮 -->
+    <color name="glass_nav_stroke">#1F000000</color>
+    <color name="glass_nav_indicator">#14000000</color>
     <!-- 分隔线：暖色 -->
     <color name="divider_color">#F0E8E4</color>
     <!-- 分隔线：中性灰 -->

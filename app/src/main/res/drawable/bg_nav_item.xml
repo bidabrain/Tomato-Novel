@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 悬浮胶囊导航：选中项的胶囊高亮 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true">
+        <inset
+            android:insetLeft="10dp"
+            android:insetRight="10dp"
+            android:insetTop="6dp"
+            android:insetBottom="6dp">
+            <shape android:shape="rectangle">
+                <corners android:radius="100dp" />
+                <solid android:color="@color/glass_nav_indicator" />
+            </shape>
+        </inset>
+    </item>
+    <item android:drawable="@android:color/transparent" />
+</selector>

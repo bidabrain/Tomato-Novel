@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.SQLException;
+import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -41,6 +42,12 @@ import com.thl.reader.dialog.PageModeDialog;
 import com.thl.reader.dialog.SettingDialog;
 import com.thl.reader.dialog.TtsDialog;
 import com.thl.reader.util.BrightnessUtil;
+import com.thl.reader.util.GlassHelper;
+
+import androidx.core.view.ViewCompat;
+
+import eightbitlab.com.blurview.BlurTarget;
+import eightbitlab.com.blurview.BlurView;
 import com.thl.reader.util.PageFactory;
 import com.thl.reader.util.ReadingStatsManager;
 import com.thl.reader.view.PageWidget;
@@ -259,6 +266,27 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
             bookpage.post(() -> pageFactory.changeBookBg(Config.BOOK_BG_5));
             // 阅读菜单改为白底黑字，在墨水屏上清晰可见
             applyEinkMenuStyle();
+        }
+        applyGlassMenus(config.isEinkMode());
+    }
+
+    /** 顶部工具栏、底部菜单的磨砂玻璃；E-ink 或 Android 12 以下保持原样式 */
+    private void applyGlassMenus(boolean eink) {
+        BlurTarget target = findViewById(R.id.read_glass_target);
+        BlurView toolbarGlass = findViewById(R.id.toolbar_glass);
+        BlurView bottomGlass = findViewById(R.id.bookpop_glass);
+        boolean glass = !eink && GlassHelper.isBlurSupported();
+        int tint = getResources().getColor(R.color.glass_read_menu);
+        // 非玻璃时：工具栏容器（含状态栏留白）与工具栏同色；底部容器透明，沿用 bookpop_bottom 自身背景
+        int toolbarSolid = eink ? 0xFFFFFFFF : getResources().getColor(R.color.read_dialog_bg2);
+        GlassHelper.apply(toolbarGlass, target, tint, toolbarSolid, glass);
+        GlassHelper.apply(bottomGlass, target, tint, Color.TRANSPARENT, glass);
+        if (glass) {
+            toolbar.setBackgroundColor(Color.TRANSPARENT);
+            appbar.setBackgroundColor(Color.TRANSPARENT);
+            appbar.setStateListAnimator(null);
+            ViewCompat.setElevation(appbar, 0);
+            bookpop_bottom.setBackgroundColor(Color.TRANSPARENT);
         }
     }
 
@@ -541,6 +569,16 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.read, menu);
+        // 墨水屏模式工具栏为白底，菜单文字（主题里为白色）改黑色
+        if (Config.createConfig(this).isEinkMode()) {
+            for (int i = 0; i < menu.size(); i++) {
+                MenuItem item = menu.getItem(i);
+                android.text.SpannableString title = new android.text.SpannableString(item.getTitle());
+                title.setSpan(new android.text.style.ForegroundColorSpan(0xFF000000),
+                        0, title.length(), 0);
+                item.setTitle(title);
+            }
+        }
         return true;
     }
 
@@ -649,6 +687,13 @@ public class ReadActivity extends BaseActivity implements View.OnClickListener {
         // 顶部 Toolbar 背景也改白色
         toolbar.setBackgroundColor(white);
         toolbar.setTitleTextColor(black);
+        // 返回图标是白色 PNG，白底上需着色为黑色
+        if (toolbar.getNavigationIcon() != null) {
+            android.graphics.drawable.Drawable nav =
+                    androidx.core.graphics.drawable.DrawableCompat.wrap(toolbar.getNavigationIcon().mutate());
+            androidx.core.graphics.drawable.DrawableCompat.setTint(nav, black);
+            toolbar.setNavigationIcon(nav);
+        }
     }
 
     /** 将 TextView 的文字颜色和 drawableTop 图标颜色统一设为指定颜色 */

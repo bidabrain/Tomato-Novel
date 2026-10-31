@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="bg_activity">#1A1614</color>
+    <!-- 对话框文字（主题全局 textColorPrimary 为白色，对话框需单独覆盖） -->
+    <color name="dialog_text_primary">#EDE6E3</color>
+    <color name="dialog_text_secondary">#C4AFA7</color>
 </resources>

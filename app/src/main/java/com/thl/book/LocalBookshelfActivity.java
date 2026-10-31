@@ -50,7 +50,11 @@ import com.thl.reader.ReadActivity;
 import com.thl.reader.db.BookList;
 import com.thl.reader.filechooser.FileChooserActivity;
 import com.thl.reader.util.FileUtils;
+import com.thl.reader.util.GlassHelper;
 import com.thl.reader.util.ReadingStatsManager;
+
+import eightbitlab.com.blurview.BlurTarget;
+import eightbitlab.com.blurview.BlurView;
 
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.SwitchCompat;
@@ -100,6 +104,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     private TextView tvTitle;
     private BookStoreFragment bookStoreFragment;
     private SwitchCompat swEink;
+    /** 底部导航的磨砂玻璃容器 */
+    private BlurView bottomNavGlass;
+    private BottomNavigationView bottomNav;
+    /** 底部导航当前高度，列表需留出同样的底部空白 */
+    private int bottomInset;
     private SwitchCompat swWebDav;
 
     private TextView tvUpdateStatus;
@@ -226,7 +235,29 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         containerBookshelf = findViewById(R.id.container_bookshelf);
         containerBookStore = (FrameLayout) findViewById(R.id.container_book_store);
 
-        BottomNavigationView bottomNav = findViewById(R.id.bottom_nav);
+        bottomNavGlass = findViewById(R.id.bottom_nav_glass);
+        bottomNav = findViewById(R.id.bottom_nav);
+        // 悬浮胶囊：按高度一半做全圆角裁剪（模糊内容与背景一起被裁剪）
+        bottomNavGlass.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, android.graphics.Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), view.getHeight() / 2f);
+            }
+        });
+        bottomNavGlass.setClipToOutline(true);
+        // 系统导航栏高度加到胶囊的下外边距（让胶囊浮在手势条上方），替换 BaseActivity 默认的内部 padding 处理
+        final ViewGroup.MarginLayoutParams capsuleLp =
+                (ViewGroup.MarginLayoutParams) bottomNavGlass.getLayoutParams();
+        final int capsuleMarginBottom = capsuleLp.bottomMargin;
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(bottomNav, (v, insets) -> {
+            int nav = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom;
+            v.setPadding(0, 0, 0, 0);
+            if (capsuleLp.bottomMargin != capsuleMarginBottom + nav) {
+                capsuleLp.bottomMargin = capsuleMarginBottom + nav;
+                bottomNavGlass.setLayoutParams(capsuleLp);
+            }
+            return insets;
+        });
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_bookshelf) {
@@ -294,6 +325,19 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
         refreshLayout.setEnableLoadmore(false);
         refreshLayout.setAutoLoadMore(false);
         refreshLayout.setOverScrollRefreshShow(true);
+
+        // 内容铺满到底部导航后面（磨砂玻璃需要背后有内容），列表底部留出胶囊顶部以下的全部高度
+        final int shelfPadBottom = mRecyclerView.getPaddingBottom();
+        final int capsuleGap = dp(8);
+        bottomNavGlass.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            int h = ((View) v.getParent()).getHeight() - t + capsuleGap;
+            if (h == bottomInset) return;
+            bottomInset = h;
+            mRecyclerView.setPadding(mRecyclerView.getPaddingLeft(), mRecyclerView.getPaddingTop(),
+                    mRecyclerView.getPaddingRight(), shelfPadBottom + h);
+            if (bookStoreFragment != null) bookStoreFragment.setBottomInset(h);
+        });
+
         ib_more = findViewById(R.id.ib_more);
         ib_more.setVisibility(View.VISIBLE);
         ib_more.setOnClickListener(this);
@@ -408,9 +452,16 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
     }
 
     private void applyEinkMode(boolean eink) {
-        View root = findViewById(R.id.activity_album);
+        BlurTarget root = findViewById(R.id.activity_album);
         if (root != null) {
             root.setBackgroundColor(eink ? 0xFFFFFFFF : getResources().getColor(R.color.bg_activity));
+            // 底部悬浮胶囊：E-ink 下关闭磨砂玻璃，保持同样的胶囊造型，改用白底黑描边
+            GlassHelper.apply(bottomNavGlass, root,
+                    getResources().getColor(R.color.glass_nav),
+                    0xFFFFFFFF, !eink);
+            bottomNavGlass.setForeground(getResources().getDrawable(eink
+                    ? R.drawable.bg_nav_capsule_stroke_eink : R.drawable.bg_nav_capsule_stroke));
+            bottomNav.setItemBackgroundResource(eink ? R.drawable.bg_nav_item_eink : R.drawable.bg_nav_item);
         }
         // Banner card background
         if (cardContinueBanner != null) {
@@ -914,6 +965,11 @@ public class LocalBookshelfActivity extends BaseActivity implements View.OnClick
                     .add(R.id.container_book_store, bookStoreFragment)
                     .commit();
         }
+    }
+
+    /** 书城 Fragment 创建时读取当前底部导航高度 */
+    int getBottomInset() {
+        return bottomInset;
     }
 
     private void updateGreeting() {

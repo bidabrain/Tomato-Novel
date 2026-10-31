@@ -38,4 +38,6 @@ dependencies {
     annotationProcessor 'androidx.room:room-compiler:2.5.2'
     implementation 'com.astuetz:pagerslidingtabstrip:1.0.1'
     implementation rootProject.ext.dependencies["okhttp"]
+    // 磨砂玻璃（app 模块也直接使用，故用 api 暴露）
+    api 'com.github.Dimezis:BlurView:version-3.1.0'
 }

@@ -6,10 +6,18 @@
                 android:orientation="vertical"
                 android:background="@color/bg_activity">
 
-    <com.thl.reader.view.PageWidget
-        android:id="@+id/bookpage"
+    <!-- 正文作为磨砂玻璃的模糊源；菜单的 BlurView 必须在它外面 -->
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/read_glass_target"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent">
+
+        <com.thl.reader.view.PageWidget
+            android:id="@+id/bookpage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+    </eightbitlab.com.blurview.BlurTarget>
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appbar"
@@ -19,14 +27,22 @@
         android:layout_alignParentTop="true"
         android:visibility="gone">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
+        <!-- fitsSystemWindows 放在玻璃容器上：状态栏留白由它承担，玻璃延伸到状态栏后面 -->
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/toolbar_glass"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="?attr/actionBarSize"
-            app:titleTextAppearance="@style/Toolbar.TitleText"
-            android:background="?attr/colorPrimary"
-            android:fitsSystemWindows="true" />
+            android:fitsSystemWindows="true">
+
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="?attr/actionBarSize"
+                app:titleTextAppearance="@style/Toolbar.TitleText"
+                android:background="?attr/colorPrimary" />
+
+        </eightbitlab.com.blurview.BlurView>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -60,6 +76,11 @@
                     android:textSize="16sp"
                     android:text="00.00%"/>
             </RelativeLayout>
+
+            <eightbitlab.com.blurview.BlurView
+                android:id="@+id/bookpop_glass"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -165,6 +186,8 @@
                         android:text="@string/read_setting_set" />
                 </LinearLayout>
             </LinearLayout>
+
+            </eightbitlab.com.blurview.BlurView>
         </LinearLayout>
     </RelativeLayout>
 

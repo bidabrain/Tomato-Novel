@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 根布局层叠：内容（BlurTarget）铺满到屏幕底部，底部导航作为磨砂玻璃浮在其上 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/activity_album"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/bg_activity"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
+
+    <eightbitlab.com.blurview.BlurTarget
+        android:id="@+id/activity_album"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/bg_activity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
     <include layout="@layout/layout_title" />
 
@@ -407,15 +416,35 @@
 
     </FrameLayout>
 
-    <!-- 底部导航 -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_nav"
+    </LinearLayout>
+
+    </eightbitlab.com.blurview.BlurTarget>
+
+    <!-- 底部导航：悬浮胶囊。背景/模糊由 GlassHelper 按 E-ink 设置切换；
+         圆角裁剪在代码里设置（outline），底部外边距会再加上系统导航栏高度 -->
+    <eightbitlab.com.blurview.BlurView
+        android:id="@+id/bottom_nav_glass"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="12dp"
         android:background="@color/bg_nav"
-        app:itemIconTint="@color/nav_color_selector"
-        app:itemTextColor="@color/nav_color_selector"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_nav_menu" />
+        android:foreground="@drawable/bg_nav_capsule_stroke">
 
-</LinearLayout>
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottom_nav"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:background="@android:color/transparent"
+            app:elevation="0dp"
+            app:itemBackground="@drawable/bg_nav_item"
+            app:itemIconTint="@color/nav_color_selector"
+            app:itemTextColor="@color/nav_color_selector"
+            app:labelVisibilityMode="labeled"
+            app:menu="@menu/bottom_nav_menu" />
+
+    </eightbitlab.com.blurview.BlurView>
+
+</FrameLayout>
