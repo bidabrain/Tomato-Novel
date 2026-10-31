@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 外层只负责背景和状态栏 paddingTop（BaseActivity 设置）；控件放在固定 56dp 的内层。
+     不能直接在 wrap_content 的 RelativeLayout 上加 paddingTop：其 centerVertical 会忽略 padding，
+     控件整体上移半个状态栏，被状态栏遮挡。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/title_bar"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="56dp"
-    android:background="@color/bg_card"
+    android:background="@color/bg_card">
+
+<RelativeLayout
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
     android:paddingLeft="12dp"
     android:paddingRight="4dp">
 
@@ -108,3 +114,5 @@
     </LinearLayout>
 
 </RelativeLayout>
+
+</FrameLayout>

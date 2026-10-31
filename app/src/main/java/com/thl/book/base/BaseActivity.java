@@ -49,9 +49,10 @@ public abstract class BaseActivity extends AppCompatActivity {
         // ── 顶部：状态栏 inset → title bar ────────────────────────────────
         View titleBar = findViewById(R.id.title_bar);
         if (titleBar != null) {
+            final int origTop = titleBar.getPaddingTop();
             ViewCompat.setOnApplyWindowInsetsListener(titleBar, (v, insets) -> {
                 int top = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-                v.setPadding(0, top, 0, 0);
+                v.setPadding(v.getPaddingLeft(), origTop + top, v.getPaddingRight(), v.getPaddingBottom());
                 return insets;
             });
         }
