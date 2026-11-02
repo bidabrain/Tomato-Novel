@@ -35,26 +35,99 @@
             android:textColorHint="@color/text_hint"
             android:textSize="14sp" />
     
-        <!-- 分类 Chip 行（固定5列等宽） -->
+        <!-- 频道切换：女频 | 男频（数据里没有频道信息时隐藏） -->
         <LinearLayout
-            android:id="@+id/chip_group"
+            android:id="@+id/row_channel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:layout_marginTop="10dp"
-            android:paddingLeft="12dp"
-            android:paddingRight="12dp"
-            android:paddingBottom="4dp"
-            android:visibility="gone" />
-    
-        <!-- 展开的更多分类面板 -->
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_channel_female"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:paddingRight="16dp"
+                android:text="女频"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/tv_channel_male"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:paddingRight="16dp"
+                android:text="男频"
+                android:textSize="15sp" />
+
+        </LinearLayout>
+
+        <!-- 分类行：横向滑动，标签按字数占宽（不截断）；“更多”固定在最右 -->
         <LinearLayout
+            android:id="@+id/row_chips"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:paddingBottom="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <HorizontalScrollView
+                android:id="@+id/hsv_chips"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fadingEdgeLength="16dp"
+                android:requiresFadingEdge="horizontal"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/chip_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="4dp" />
+
+            </HorizontalScrollView>
+
+            <TextView
+                android:id="@+id/tv_more_chip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:layout_marginRight="16dp"
+                android:background="@drawable/bg_more_categories"
+                android:gravity="center"
+                android:paddingLeft="10dp"
+                android:paddingTop="6dp"
+                android:paddingRight="10dp"
+                android:paddingBottom="6dp"
+                android:singleLine="true"
+                android:text="更多 ▼"
+                android:textColor="#6B5A53"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
+        <!-- 展开的更多分类面板：流式布局，自动换行 -->
+        <com.thl.book.FlowLayout
             android:id="@+id/expand_categories"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"
-            android:clipToPadding="false" />
+            android:paddingLeft="16dp"
+            android:paddingTop="8dp"
+            android:paddingRight="16dp"
+            android:paddingBottom="8dp"
+            android:visibility="gone" />
     
         <!-- Banner 轮播区 -->
         <FrameLayout

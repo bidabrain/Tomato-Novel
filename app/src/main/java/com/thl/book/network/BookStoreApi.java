@@ -40,6 +40,7 @@ public class BookStoreApi {
                 JsonObject catObj = catEl.getAsJsonObject();
                 RankCategory category = new RankCategory();
                 category.name = getString(catObj, "name");
+                category.channel = getString(catObj, "channel");
                 category.allBooks = new ArrayList<>();
 
                 if (catObj.has("books") && catObj.get("books").isJsonArray()) {

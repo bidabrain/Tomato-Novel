@@ -52,8 +52,18 @@ public class BookStoreFragment extends Fragment {
     private View progressLoading;
     private View layoutError;
     private LinearLayout chipGroup;
-    private LinearLayout expandCategories;
+    private FlowLayout expandCategories;
     private TextView moreChip;
+    /** 频道切换行、分类行、分类横向滚动容器 */
+    private View rowChannel, rowChips;
+    private android.widget.HorizontalScrollView hsvChips;
+    private TextView tvChannelFemale, tvChannelMale;
+
+    private static final String CHANNEL_FEMALE = "female";
+    private static final String CHANNEL_MALE = "male";
+    private static final String PREF_STORE_CHANNEL = "store_channel";
+    /** 当前频道；数据里没有频道信息时不区分频道 */
+    private String currentChannel = CHANNEL_FEMALE;
 
     // Banner
     private View bannerContainer;
@@ -123,6 +133,19 @@ public class BookStoreFragment extends Fragment {
         layoutError = view.findViewById(R.id.layout_error);
         chipGroup = view.findViewById(R.id.chip_group);
         expandCategories = view.findViewById(R.id.expand_categories);
+        rowChannel = view.findViewById(R.id.row_channel);
+        rowChips = view.findViewById(R.id.row_chips);
+        hsvChips = view.findViewById(R.id.hsv_chips);
+        tvChannelFemale = view.findViewById(R.id.tv_channel_female);
+        tvChannelMale = view.findViewById(R.id.tv_channel_male);
+        moreChip = view.findViewById(R.id.tv_more_chip);
+        moreChip.setOnClickListener(v -> toggleExpandCategories());
+        tvChannelFemale.setOnClickListener(v -> switchChannel(CHANNEL_FEMALE));
+        tvChannelMale.setOnClickListener(v -> switchChannel(CHANNEL_MALE));
+        currentChannel = SharedPreferencesUtils.getString(requireContext(),
+                PREF_STORE_CHANNEL, CHANNEL_FEMALE);
+        int d = Math.round(getResources().getDisplayMetrics().density);
+        expandCategories.setSpacing(8 * d, 8 * d);
 
         // Banner views
         bannerContainer = view.findViewById(R.id.banner_container);
@@ -197,10 +220,14 @@ public class BookStoreFragment extends Fragment {
                         if (Math.abs(diffX) > Math.abs(diffY)
                                 && Math.abs(diffX) > SWIPE_MIN_DISTANCE
                                 && Math.abs(velocityX) > SWIPE_MIN_VELOCITY) {
+                            // 只在当前频道的分类之间循环切换
+                            List<Integer> ids = channelIndices();
+                            if (ids.isEmpty()) return false;
+                            int pos = Math.max(0, ids.indexOf(selectedIndex));
                             int next = diffX < 0
-                                    ? (selectedIndex + 1) % categories.size()
-                                    : (selectedIndex - 1 + categories.size()) % categories.size();
-                            selectCategory(next);
+                                    ? (pos + 1) % ids.size()
+                                    : (pos - 1 + ids.size()) % ids.size();
+                            selectCategory(ids.get(next));
                             return true;
                         }
                         return false;
@@ -314,18 +341,20 @@ public class BookStoreFragment extends Fragment {
     private void showCategories(List<RankCategory> cats) {
         if (getView() == null) return;
         this.categories = cats;
-        this.selectedIndex = 0;
+        // 默认选中当前频道（上次选的频道）的第一个分类
+        List<Integer> ids = channelIndices();
+        this.selectedIndex = ids.isEmpty() ? 0 : ids.get(0);
 
         progressLoading.setVisibility(View.GONE);
         layoutError.setVisibility(View.GONE);
         swipeRefresh.setVisibility(View.VISIBLE);
-        chipGroup.setVisibility(View.VISIBLE);
+        rowChips.setVisibility(View.VISIBLE);
 
         if (bannerContainer != null) bannerContainer.setVisibility(View.VISIBLE);
         if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.VISIBLE);
 
         buildChips();
-        showBooksForIndex(0);
+        showBooksForIndex(selectedIndex);
         updateBanner(cats);
 
         // Start auto-scroll
@@ -336,7 +365,10 @@ public class BookStoreFragment extends Fragment {
     private void updateBanner(List<RankCategory> cats) {
         if (vpBanner == null || bannerDots == null) return;
         List<RankBook> pool = new ArrayList<>();
+        // 轮播只推荐当前频道的书
+        boolean byChannel = hasChannels();
         for (RankCategory cat : cats) {
+            if (byChannel && !currentChannel.equals(cat.channel)) continue;
             if (cat.displayBooks != null) pool.addAll(cat.displayBooks);
         }
         Collections.shuffle(pool);
@@ -370,118 +402,116 @@ public class BookStoreFragment extends Fragment {
         }
     }
 
-    /** 动态生成分类 Chip，显示前4个（等宽）+ 更多分类按钮，并构建展开面板 */
-    private void buildChips() {
-        if (getContext() == null || categories == null) return;
-        chipGroup.removeAllViews();
-        expandCategories.removeAllViews();
-        expandCategories.setVisibility(View.GONE);
-        moreChip = null;
-
-        Context ctx = requireContext();
-        int dp8 = dp(ctx, 8);
-        int dp4 = dp(ctx, 4);
-
-        int visibleCount = Math.min(4, categories.size());
-        for (int i = 0; i < visibleCount; i++) {
-            final int index = i;
-            TextView chip = new TextView(ctx);
-            chip.setText(categories.get(i).name);
-            chip.setTextSize(13);
-            chip.setSingleLine(true);
-            chip.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            chip.setGravity(android.view.Gravity.CENTER);
-            chip.setPadding(dp4, dp8, dp4, dp8);
-
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            lp.setMargins(dp4, 0, dp4, 0);
-            chip.setLayoutParams(lp);
-
-            applyChipStyle(chip, i == selectedIndex);
-            chip.setOnClickListener(v -> selectCategory(index));
-            chipGroup.addView(chip);
+    /** 数据里是否带频道信息（没有时不显示频道切换，所有分类放在一起） */
+    private boolean hasChannels() {
+        if (categories == null) return false;
+        for (RankCategory c : categories) {
+            if (c.channel != null && !c.channel.isEmpty()) return true;
         }
-
-        if (categories.size() > 4) {
-            moreChip = new TextView(ctx);
-            updateMoreChipText();
-            moreChip.setTextSize(13);
-            moreChip.setSingleLine(true);
-            moreChip.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            moreChip.setGravity(android.view.Gravity.CENTER);
-            moreChip.setPadding(dp4, dp8, dp4, dp8);
-            moreChip.setBackgroundResource(R.drawable.bg_more_categories);
-            moreChip.setTextColor(selectedIndex >= 4
-                    ? getResources().getColor(R.color.colorPrimary) : 0xFF6B5A53);
-
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            lp.setMargins(dp4, 0, dp4, 0);
-            moreChip.setLayoutParams(lp);
-
-            moreChip.setOnClickListener(v -> toggleExpandCategories());
-            chipGroup.addView(moreChip);
-
-            buildExpandedGrid(ctx, dp8, dp4);
-        }
+        return false;
     }
 
-    private void buildExpandedGrid(Context ctx, int dp8, int dp4) {
+    /** 当前频道下的分类在 categories 中的下标 */
+    private List<Integer> channelIndices() {
+        List<Integer> ids = new ArrayList<>();
+        if (categories == null) return ids;
+        boolean byChannel = hasChannels();
+        for (int i = 0; i < categories.size(); i++) {
+            if (!byChannel || currentChannel.equals(categories.get(i).channel)) ids.add(i);
+        }
+        // 当前频道没有任何分类（例如数据变化）时退回显示全部
+        if (ids.isEmpty()) {
+            for (int i = 0; i < categories.size(); i++) ids.add(i);
+        }
+        return ids;
+    }
+
+    private void switchChannel(String channel) {
+        if (categories == null || channel.equals(currentChannel)) return;
+        currentChannel = channel;
+        SharedPreferencesUtils.saveString(requireContext(), PREF_STORE_CHANNEL, channel);
+        List<Integer> ids = channelIndices();
+        selectedIndex = ids.isEmpty() ? 0 : ids.get(0);
+        expandCategories.setVisibility(View.GONE);
+        buildChips();
+        showBooksForIndex(selectedIndex);
+        updateBanner(categories);
+        hsvChips.scrollTo(0, 0);
+    }
+
+    private TextView newChip(Context ctx, int index) {
         int padH = dp(ctx, 12);
-        int padV = dp(ctx, 8);
-        expandCategories.setPadding(padH, padV, padH, padV);
+        int padV = dp(ctx, 6);
+        TextView chip = new TextView(ctx);
+        chip.setText(categories.get(index).name);
+        chip.setTextSize(13);
+        chip.setSingleLine(true);
+        chip.setGravity(android.view.Gravity.CENTER);
+        chip.setPadding(padH, padV, padH, padV);
+        applyChipStyle(chip, index == selectedIndex);
+        return chip;
+    }
 
-        LinearLayout currentRow = null;
-        int countInRow = 0;
+    private void buildChips() {
+        if (getContext() == null || categories == null) return;
+        Context ctx = requireContext();
+        chipGroup.removeAllViews();
+        expandCategories.removeAllViews();
 
-        for (int i = 4; i < categories.size(); i++) {
-            final int index = i;
+        // 频道切换
+        boolean byChannel = hasChannels();
+        rowChannel.setVisibility(byChannel ? View.VISIBLE : View.GONE);
+        if (byChannel) {
+            applyChannelStyle(tvChannelFemale, CHANNEL_FEMALE.equals(currentChannel));
+            applyChannelStyle(tvChannelMale, CHANNEL_MALE.equals(currentChannel));
+        }
 
-            if (countInRow == 0) {
-                currentRow = new LinearLayout(ctx);
-                currentRow.setOrientation(LinearLayout.HORIZONTAL);
-                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT);
-                rowLp.setMargins(0, 0, 0, dp4 * 2);
-                currentRow.setLayoutParams(rowLp);
-                expandCategories.addView(currentRow);
-            }
+        // 分类行：横向滑动，按字数占宽
+        List<Integer> ids = channelIndices();
+        TextView selectedChip = null;
+        for (int index : ids) {
+            TextView chip = newChip(ctx, index);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(0, 0, dp(ctx, 8), 0);
+            chip.setLayoutParams(lp);
+            chip.setOnClickListener(v -> selectCategory(index));
+            chipGroup.addView(chip);
+            if (index == selectedIndex) selectedChip = chip;
+        }
+        // 选中的分类滚到可见位置（两侧多留出渐隐区的宽度）
+        if (selectedChip != null) {
+            final TextView target = selectedChip;
+            hsvChips.post(() -> {
+                int left = target.getLeft() - dp(ctx, 32);
+                int right = target.getRight() + dp(ctx, 32) - hsvChips.getWidth();
+                int x = hsvChips.getScrollX();
+                if (left < x) hsvChips.smoothScrollTo(left, 0);
+                else if (right > x) hsvChips.smoothScrollTo(right, 0);
+            });
+        }
 
-            TextView chip = new TextView(ctx);
-            chip.setText(categories.get(i).name);
-            chip.setTextSize(13);
-            chip.setSingleLine(true);
-            chip.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            chip.setGravity(android.view.Gravity.CENTER);
-            chip.setPadding(dp4, dp8, dp4, dp8);
-
-            LinearLayout.LayoutParams chipLp = new LinearLayout.LayoutParams(0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            chipLp.setMargins(dp4, 0, dp4, 0);
-            chip.setLayoutParams(chipLp);
-
-            applyChipStyle(chip, index == selectedIndex);
+        // 展开面板：当前频道全部分类，流式排列自动换行
+        for (int index : ids) {
+            TextView chip = newChip(ctx, index);
             chip.setOnClickListener(v -> {
                 selectCategory(index);
                 collapsePanel();
             });
-            currentRow.addView(chip);
-            countInRow++;
-
-            if (countInRow == 5) countInRow = 0;
+            expandCategories.addView(chip);
         }
+        updateMoreChipText();
+    }
 
-        // 补齐最后一行空位
-        if (countInRow > 0 && currentRow != null) {
-            for (int i = countInRow; i < 5; i++) {
-                View spacer = new View(ctx);
-                LinearLayout.LayoutParams spLp = new LinearLayout.LayoutParams(0, 0, 1f);
-                spLp.setMargins(dp4, 0, dp4, 0);
-                spacer.setLayoutParams(spLp);
-                currentRow.addView(spacer);
-            }
+    /** 频道切换文字样式：选中加粗主色（墨水屏为黑色），未选中次要色 */
+    private void applyChannelStyle(TextView tv, boolean selected) {
+        boolean eink = Config.createConfig(requireContext()).isEinkMode();
+        if (selected) {
+            tv.setTextColor(eink ? 0xFF000000 : getResources().getColor(R.color.colorPrimary));
+            tv.setTypeface(null, Typeface.BOLD);
+        } else {
+            tv.setTextColor(eink ? 0xFF666666 : getResources().getColor(R.color.text_secondary));
+            tv.setTypeface(null, Typeface.NORMAL);
         }
     }
 
@@ -503,7 +533,7 @@ public class BookStoreFragment extends Fragment {
     private void expandPanel() {
         expandCategories.setVisibility(View.VISIBLE);
         expandCategories.measure(
-                View.MeasureSpec.makeMeasureSpec(chipGroup.getWidth(), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(((View) expandCategories.getParent()).getWidth(), View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
         int targetHeight = expandCategories.getMeasuredHeight();
         ViewGroup.LayoutParams lp = expandCategories.getLayoutParams();
@@ -592,7 +622,8 @@ public class BookStoreFragment extends Fragment {
         if (getView() == null) return;
         progressLoading.setVisibility(View.VISIBLE);
         layoutError.setVisibility(View.GONE);
-        chipGroup.setVisibility(View.GONE);
+        rowChips.setVisibility(View.GONE);
+        rowChannel.setVisibility(View.GONE);
         expandCategories.setVisibility(View.GONE);
         if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);
         if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.GONE);
@@ -602,7 +633,8 @@ public class BookStoreFragment extends Fragment {
         if (getView() == null) return;
         progressLoading.setVisibility(View.GONE);
         layoutError.setVisibility(View.VISIBLE);
-        chipGroup.setVisibility(View.GONE);
+        rowChips.setVisibility(View.GONE);
+        rowChannel.setVisibility(View.GONE);
         expandCategories.setVisibility(View.GONE);
         if (bannerContainer != null) bannerContainer.setVisibility(View.GONE);
         if (rowFeaturedHeader != null) rowFeaturedHeader.setVisibility(View.GONE);
