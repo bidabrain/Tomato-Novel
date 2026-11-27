@@ -60,11 +60,17 @@ App 依赖自建的 [Tomato-Novel-Downloader](https://github.com/zhongbai2333/To
 sdk.dir=/path/to/android/sdk
 DOWNLOADER_URL=https://your-downloader-server.example.com
 DOWNLOADER_PASSWORD=your-password-here
+# 可选：默认书城列表地址
+# STORE_URL=https://your-store-server.example.com/all.json
 ```
 
 编译时 Gradle 会将这些值注入 `BuildConfig`，打包进 APK 但不出现在源码中。
 
 若 `local.properties` 不存在或字段为空，App 可正常编译，但搜索和下载功能需在 App 内手动配置服务器后才能使用（见下方「应用内服务器设置」）。
+
+`STORE_URL` 为可选项，用于替换编译进 APK 的默认书城列表地址；未填写或留空时使用内置的 `https://bidabrain.github.io/FanqieRankTracker/api/lastest/all.json`。
+
+GitHub Actions 自动编译（`.github/workflows/release.yml`）会用仓库 Secret 生成 `local.properties`：`DOWNLOADER_URL`、`DOWNLOADER_PASSWORD`，以及可选的 `STORE_URL`（未设置该 Secret 时同样使用内置书城地址）。
 
 ## 应用内服务器设置
 

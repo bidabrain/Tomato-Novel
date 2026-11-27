@@ -4,3 +4,6 @@ sdk.dir=/path/to/android/sdk
 # Copy this file to local.properties and fill in your own values
 DOWNLOADER_URL=https://your-downloader-server.example.com
 DOWNLOADER_PASSWORD=your-password-here
+
+# Default book store list URL (optional; leave unset to use the built-in GitHub Pages address)
+# STORE_URL=https://your-store-server.example.com/all.json

@@ -20,10 +20,9 @@ public class ServerConfig {
     public static final String KEY_CUSTOM_STORE_ENABLED = "custom_store_enabled";
     public static final String KEY_CUSTOM_STORE_URL     = "custom_store_url";
 
-    // ── Default book store URL (GitHub Pages) ────────────────────────────────
+    // ── Default book store URL (STORE_URL in local.properties, else GitHub Pages) ──
 
-    public static final String DEFAULT_STORE_URL =
-            "https://bidabrain.github.io/FanqieRankTracker/api/lastest/all.json";
+    public static final String DEFAULT_STORE_URL = BuildConfig.STORE_URL;
 
     // ── Downloader ────────────────────────────────────────────────────────────
 

@@ -27,6 +27,8 @@ def localPropsFile = rootProject.file("local.properties")
 if (localPropsFile.exists()) {
     localPropsFile.withInputStream { localProps.load(it) }
 }
+// 默认书城列表地址：local.properties 未填写（或留空）时使用内置地址
+def storeUrl = localProps['STORE_URL']?.trim() ?: 'https://bidabrain.github.io/FanqieRankTracker/api/lastest/all.json'
 
 android {
     compileSdkVersion rootProject.ext.android["compileSdkVersion"]
@@ -54,6 +56,7 @@ android {
             buildConfigField "boolean", "LOG_DEBUG", "true"
             buildConfigField "String", "DOWNLOADER_URL",      "\"${localProps['DOWNLOADER_URL'] ?: ''}\""
             buildConfigField "String", "DOWNLOADER_PASSWORD", "\"${localProps['DOWNLOADER_PASSWORD'] ?: ''}\""
+            buildConfigField "String", "STORE_URL",           "\"${storeUrl}\""
             buildConfigField "String", "CHANGELOG",           "\"${getChangelog()}\""
             debuggable true
             minifyEnabled false
@@ -62,6 +65,7 @@ android {
             buildConfigField "boolean", "LOG_DEBUG", "false"
             buildConfigField "String", "DOWNLOADER_URL",      "\"${localProps['DOWNLOADER_URL'] ?: ''}\""
             buildConfigField "String", "DOWNLOADER_PASSWORD", "\"${localProps['DOWNLOADER_PASSWORD'] ?: ''}\""
+            buildConfigField "String", "STORE_URL",           "\"${storeUrl}\""
             buildConfigField "String", "CHANGELOG",           "\"${getChangelog()}\""
             signingConfig signingConfigs.debug   // 复用 debug keystore，自用场景无需额外配置
             debuggable false

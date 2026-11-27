@@ -37,6 +37,7 @@ jobs:
           {
             echo "DOWNLOADER_URL=${{ secrets.DOWNLOADER_URL }}"
             echo "DOWNLOADER_PASSWORD=${{ secrets.DOWNLOADER_PASSWORD }}"
+            echo "STORE_URL=${{ secrets.STORE_URL }}"
           } > local.properties
 
       - name: Build release APK
